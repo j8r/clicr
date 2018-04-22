@@ -1,0 +1,10 @@
+name: clicr
+version: 0.1.0
+
+authors:
+  - Julien Reichardt <mi@jrei.ch>
+
+description: |
+  Command line interface builder
+
+license: ISC
