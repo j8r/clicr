@@ -39,6 +39,7 @@ Clicr.create(
   },
    variables: {
      name: {
+       info: "Your name",
        default: "foo",
      },
    },
@@ -52,10 +53,10 @@ Clicr.create(
 
 def say(name, yes)
   if yes
-    puts "yes, "
+    puts "yes, #{name}"
   else
-    puts "no, "
-  end + name
+    puts "no, #{name}"
+  end
 end
 ```
 
@@ -67,6 +68,26 @@ myapp talk name=bar -y #=> yes, bar
 
 myapp talk             #=> no, foo
 ```
+
+```
+myapp --help
+
+Usage: myapp COMMAND [OPTIONS]
+
+Myapp can do everything
+
+Options:
+  -y, --yes      Print the name
+
+Variables:
+  name=foo       Your name
+
+Commands:
+  t, talk        Talk
+
+'myapp --help' to show the help
+```
+
 
 ### Advanced example
 
