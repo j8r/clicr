@@ -16,7 +16,7 @@ dependencies:
 
 ## Usage
 
-This shard consist to one single macro `Clicr.create`,that expand to recursive `case`.
+This shard consists to one single macro `Clicr.create`, that expands to recursive `while` loops and `case` conditions.
 
 All the CLI, including errors, can be translated in the language of choice, look at the parameters at `src/clir.cr`.
 
@@ -61,18 +61,10 @@ end
 ```
 
 Example of commands:
-```sh
-myapp talk name=bar    #=> no, bar
-
-myapp talk name=bar -y #=> yes, bar
-
-myapp talk             #=> no, foo
 ```
+$ myapp --help
 
-```
-myapp --help
-
-Usage: myapp COMMAND [OPTIONS]
+Usage: myapp COMMANDS [VARIABLES] [OPTIONS]
 
 Myapp can do everything
 
@@ -86,8 +78,16 @@ Commands:
   t, talk        Talk
 
 'myapp --help' to show the help
-```
 
+$ myapp talk name=bar
+no, bar
+
+$ myapp talk name=bar -y
+yes, bar
+
+$ myapp talk
+no, foo
+```
 
 ### Advanced example
 
@@ -190,7 +190,7 @@ option: {
 * `alias: true` create an alias with the first char of the option, like `-v` for `--version`
 * containing single character arguments like `-` is possible
 
-Special case, the `help_option` with by default `-h`, `--help` (`help_option = "help"`):
+Special case, the `help_option`, which is set to `"help"` with the options `-h, --help` by default
 * Shows the help of the current (sub)command
 * has the priority over every other arguments including other options, commands and variables
 

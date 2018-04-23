@@ -1,6 +1,6 @@
 module Clicr
   macro create(
-    name = File.basename(__FILE__),
+    name = "app",
     info = "Application default description",
     version = "Default version",
     version_name = "Version",
@@ -53,7 +53,7 @@ module Clicr
           {% if options.is_a? NamedTupleLiteral %}
              {% for opt, x in options %}{{opt.id}}: {{opt.id}},
           {% end %}{% end %}{% end %})
-        end
+        else
         {% end %}
 
         ARGV.shift
@@ -80,14 +80,19 @@ module Clicr
             {% end %} },
           {% end %}
         )
+        {% if properties[:action] %}end{% end %}
+        ARGV.clear
 
-        break
       {% end %}{% end %}
 
         # Help
       when "", "--{{help_option.id}}", "-{{help_option.chars.first.id}}"{% if action == nil %}, ARGV.last{% end %}
         puts <<-HELP
-        {{usage_name.id}}: {{name.id}} COMMAND [OPTIONS]
+
+        {{usage_name.id}}: {{name.id}}\
+        {% if commands.is_a? NamedTupleLiteral %} {{commands_name.id.upcase}}{% end %} \
+        {% if variables.is_a? NamedTupleLiteral %} [{{variables_name.id.upcase}}]{% end %} \
+        {% if options.is_a? NamedTupleLiteral %} [{{options_name.id.upcase}}]{% end %}
 
         {{info.id}}
         {% if options.is_a? NamedTupleLiteral %}
@@ -156,7 +161,7 @@ module Clicr
         end
       {% end %}
 
-      ARGV.shift
+      ARGV.shift if !ARGV.empty?
     end
   end
   end
