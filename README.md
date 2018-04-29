@@ -35,6 +35,7 @@ Clicr.create(
       alias: true,
       info: "Talk",
       action: say,
+      arguments: %w(directory),
     },
   },
    variables: {
@@ -51,11 +52,11 @@ Clicr.create(
    }
 )
 
-def say(name, yes)
+def say(directory, name, yes)
   if yes
-    puts "yes, #{name}"
+    puts "yes, #{name} in #{directory}"
   else
-    puts "no, #{name}"
+    puts "no, #{name} in #{directory}"
   end
 end
 ```
@@ -64,7 +65,7 @@ Example of commands:
 ```
 $ myapp --help
 
-Usage: myapp COMMANDS [VARIABLES] [OPTIONS]
+Usage: myapp DIRECTORY [VARIABLES] [OPTIONS]
 
 Myapp can do everything
 
@@ -79,14 +80,14 @@ Commands:
 
 'myapp --help' to show the help
 
-$ myapp talk name=bar
-no, bar
+$ myapp talk /tmp name=bar
+no, bar in /tmp
 
-$ myapp talk name=bar -y
-yes, bar
+$ myapp talk home name=bar -y
+yes, bar in home
 
-$ myapp talk
-no, foo
+$ myapp talk test
+no, foo in test
 ```
 
 ### Advanced example
@@ -96,7 +97,7 @@ There can have subcommands that have subcommands indefinitely with their options
 Other parameters can be customized like names of sections, the `help_option` and `unknown` errors messages:
 
 ```crystal
-ARGV.replace ["talk", "-j", "forename=Jack", "to_me"]
+ARGV.replace %w(talk -j forename=Jack to_me)
 
 Clicr.create(
   name: "myapp",
@@ -154,7 +155,6 @@ end
 
 Result: `Yo my best Jack Bar friend!`
 
-
 ## Reference
 
 ### Commands
@@ -172,12 +172,21 @@ commands: {
 
 * `alias: true` create an alias with the first char of the commands, like `v` for `version`
 
+### Arguments
+
+```crystal
+arguments: %(name folder),
+```
+
+* list arguments required after the command in the following order
+* when arguments are specified, they becomes **mandatory**
+
 ### Options
 
 Example: `-y`, `--yes`
 
 ```crystal
-option: {
+options: {
   yes: {
     alias: true,
     info: "No confirmations",

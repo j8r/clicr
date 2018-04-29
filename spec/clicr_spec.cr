@@ -1,6 +1,6 @@
 require "./spec_helper"
 
-class SimpleCli
+struct SimpleCli
   getter result : String = ""
 
   def initialize
@@ -10,6 +10,12 @@ class SimpleCli
           alias: true,
           info: "Talk",
           action: "test",
+        },
+        run: {
+          alias: false,
+          info: "Tests vars",
+          action: "run",
+          arguments: %w(application folder),
         },
       },
       variables: {
@@ -30,6 +36,10 @@ class SimpleCli
   def test(name, yes)
     @result = (yes ? "yes " : "no ") + name
   end
+
+  def run(name, yes, application, folder)
+    @result = application + " runned in " + folder
+  end
 end
 
 describe Clicr do
@@ -45,12 +55,19 @@ describe Clicr do
       end
     end
 
+    describe "arguments" do
+      it "use" do
+        ARGV.replace ["run", "myapp", "/tmp"]
+        SimpleCli.new.result.should eq "myapp runned in /tmp"
+      end
+    end
+
     describe "variables" do
       it "set value at the end" do
         ARGV.replace ["talk", "name=bar"]
         SimpleCli.new.result.should eq "no bar"
       end
-      it "set value at the begining" do
+      it "set value at the beginning" do
         ARGV.replace ["name=bar", "talk"]
         SimpleCli.new.result.should eq "no bar"
       end
@@ -65,11 +82,11 @@ describe Clicr do
         ARGV.replace ["talk", "-y"]
         SimpleCli.new.result.should eq "yes foo"
       end
-      it "set option at the begining" do
+      it "set option at the beginning" do
         ARGV.replace ["--yes", "talk"]
         SimpleCli.new.result.should eq "yes foo"
       end
-      it "set single character option at the begining" do
+      it "set single character option at the beginning" do
         ARGV.replace ["-y", "talk"]
         SimpleCli.new.result.should eq "yes foo"
       end

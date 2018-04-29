@@ -1,4 +1,5 @@
 module Clicr
+
   macro create(
     name = "app",
     info = "Application default description",
@@ -13,12 +14,13 @@ module Clicr
     unknown_option = "Unknown option",
     unknown_command = "Unknown command or variable",
     unknown_variable = "Unknown variable",
-    args = ARGV,
     action = nil,
     commands = NamedTupleLiteral,
+    arguments = ArrayLiteral,
     options = NamedTupleLiteral,
     variables = NamedTupleLiteral,
   )
+  # {{name}}
   # Needed to have variables "namespaced"
   1.times do
     # Initialize default values
@@ -29,6 +31,23 @@ module Clicr
   {% if options.is_a? NamedTupleLiteral %}{% for var, properties in options %}\
     {{var}} = false
   {% end %}{% end %}
+
+  # Parse arguments
+  {% if arguments.is_a? ArrayLiteral %}
+    {% for arg in arguments %}\
+      {{arg.id}} = ""
+      case arg = ARGV.first?
+      when nil
+        puts "'{{arg.id.upcase}}' argument missing"
+        # Print the help
+        ARGV.replace [""]
+      when "", "--{{help_option.id}}", "-{{help_option.chars.first.id}}"
+      else
+        {{arg.id}} = arg
+        ARGV.shift
+      end
+    {% end %}
+  {% end %}
 
   # Loop while there are argument
     while !ARGV.empty?
@@ -47,22 +66,41 @@ module Clicr
         # Perform action for {{name.id}} {{key.id}} if no more arguments
         {% if properties[:action] %}
         if ARGV.size == 1
+          # Parse arguments
+          {% if properties[:arguments].is_a? ArrayLiteral %}
+            {% for arg in properties[:arguments] %}\
+              {{arg.id}} = ""
+              case arg = ARGV.first?
+              when nil
+                puts "'{{arg.id.upcase}}' argument missing"
+                # Print the help
+                ARGV.replace [""]
+              when "", "--{{help_option.id}}", "-{{help_option.chars.first.id}}"
+              else
+                {{arg.id}} = arg
+                ARGV.shift
+              end
+            {% end %}
+          {% end %}
+
+
           {{properties[:action].id}}({% if variables.is_a? NamedTupleLiteral %}
              {% for var, x in variables %}{{var.id}}: {{var.id}},
-          {% end %}
+          {% end %}{% end %}
           {% if options.is_a? NamedTupleLiteral %}
              {% for opt, x in options %}{{opt.id}}: {{opt.id}},
-          {% end %}{% end %}{% end %})
+          {% end %}{% end %}
+          {% if properties[:arguments].is_a? ArrayLiteral %}
+            {% for arg in properties[:arguments] %}{{arg.id}}: {{arg.id}},
+          {% end %}{% end %})
         else
         {% end %}
 
-        ARGV.shift
+        ARGV.shift?
 
         # Options are variables apply recursively to subcommands
         Clicr.create(
-          "{{name.id}} {{key.id}}", {{info}}, {{version}}, {{version_name}}, {{usage_name}}, {{commands_name}}, {{options_name}}, {{variables_name}}, {{help}}, {{help_option}}, {{unknown_option}}, {{unknown_command}}, {{unknown_variable}},
-          commands: {{properties[:commands]}},
-          action: {{properties[:action]}},
+          "{{name.id}} {{key.id}}", {{info}}, {{version}}, {{version_name}}, {{usage_name}}, {{commands_name}}, {{options_name}}, {{variables_name}}, {{help}}, {{help_option}}, {{unknown_option}}, {{unknown_command}}, {{unknown_variable}}, {{properties[:action]}}, {{properties[:commands]}}, {{properties[:arguments]}},
           # Merge options for recursive use in subcommands
           {% if options.is_a? NamedTupleLiteral || properties[:options].is_a? NamedTupleLiteral %}
             options: { {% if options.is_a? NamedTupleLiteral %}
@@ -81,6 +119,7 @@ module Clicr
           {% end %}
         )
         {% if properties[:action] %}end{% end %}
+        # action executed - nothing to parse anymore
         ARGV.clear
 
       {% end %}{% end %}
@@ -90,6 +129,7 @@ module Clicr
         puts <<-HELP
 
         {{usage_name.id}}: {{name.id}}\
+        {% if arguments.is_a? ArrayLiteral %} {{arguments.join(' ').id.upcase}}{% end %}\
         {% if commands.is_a? NamedTupleLiteral %} {{commands_name.id.upcase}}{% end %} \
         {% if variables.is_a? NamedTupleLiteral %} [{{variables_name.id.upcase}}]{% end %} \
         {% if options.is_a? NamedTupleLiteral %} [{{options_name.id.upcase}}]{% end %}
@@ -121,7 +161,8 @@ module Clicr
 
 
         HELP
-        exit 0
+        # Help shown, nothing to parse anymore
+        exit
         # Generate options match
       {% if options.is_a? NamedTupleLiteral %}{% for key, value in options %}
       when "--{{key}}" \
@@ -148,21 +189,20 @@ module Clicr
       else
         raise "{{unknown_command.id}}: '#{ARGV.first}'\n'{{name.id}} --{{help_option.id}}' {{help.id}}"
       end
-
-      # At the end execute the command {{name}}
-      {% if action != nil %}
-        if ARGV.size == 1
-          {{action.id}}({% if variables.is_a? NamedTupleLiteral %}
-             {% for var, x in variables %}{{var.id}}: {{var.id}},
-          {% end %}
-          {% if options.is_a? NamedTupleLiteral %}
-             {% for opt, x in options %}{{opt.id}}: {{opt.id}},
-          {% end %}{% end %}{% end %})
-        end
-      {% end %}
-
-      ARGV.shift if !ARGV.empty?
+      ARGV.shift?
     end
-  end
+    # At the end execute the command {{name}}
+    {% if action != nil %}
+      {{action.id}}({% if variables.is_a? NamedTupleLiteral %}
+         {% for var, x in variables %}{{var.id}}: {{var.id}},
+      {% end %}{% end %}
+      {% if options.is_a? NamedTupleLiteral %}
+         {% for opt, x in options %}{{opt.id}}: {{opt.id}},
+      {% end %}{% end %}
+      {% if arguments.is_a? ArrayLiteral %}
+        {% for arg in arguments %}{{arg.id}}: {{arg.id}},
+      {% end %}{% end %})
+    {% end %}
+    end
   end
 end
