@@ -3,8 +3,6 @@ module Clicr
   macro create(
     name = "app",
     info = "Application default description",
-    version = "Default version",
-    version_name = "Version",
     usage_name = "Usage",
     commands_name = "Commands",
     options_name = "Options",
@@ -63,27 +61,19 @@ module Clicr
             , "{{key.chars.first.id}}" \
         {% end %}
 
+        # Check if the required arguments are present
+        {% if properties[:arguments].is_a? ArrayLiteral %}
+          {% for arg in properties[:arguments] %}\
+              {{arg.id}} = ""
+              puts "'{{arg.id.upcase}}' argument missing" if ARGV.size == 1
+          {% end %}
+          # Print the help
+          ARGV.replace ["", ""] if ARGV.size == 1
+        {% end %}
+
         # Perform action for {{name.id}} {{key.id}} if no more arguments
         {% if properties[:action] %}
         if ARGV.size == 1
-          # Parse arguments
-          {% if properties[:arguments].is_a? ArrayLiteral %}
-            {% for arg in properties[:arguments] %}\
-              {{arg.id}} = ""
-              case arg = ARGV.first?
-              when nil
-                puts "'{{arg.id.upcase}}' argument missing"
-                # Print the help
-                ARGV.replace [""]
-              when "", "--{{help_option.id}}", "-{{help_option.chars.first.id}}"
-              else
-                {{arg.id}} = arg
-                ARGV.shift
-              end
-            {% end %}
-          {% end %}
-
-
           {{properties[:action].id}}({% if variables.is_a? NamedTupleLiteral %}
              {% for var, x in variables %}{{var.id}}: {{var.id}},
           {% end %}{% end %}
@@ -96,11 +86,12 @@ module Clicr
         else
         {% end %}
 
+        # Remove the command executed
         ARGV.shift?
 
         # Options are variables apply recursively to subcommands
         Clicr.create(
-          "{{name.id}} {{key.id}}", {{info}}, {{version}}, {{version_name}}, {{usage_name}}, {{commands_name}}, {{options_name}}, {{variables_name}}, {{help}}, {{help_option}}, {{unknown_option}}, {{unknown_command}}, {{unknown_variable}}, {{properties[:action]}}, {{properties[:commands]}}, {{properties[:arguments]}},
+          "{{name.id}} {{key.id}}", {{info}}, {{usage_name}}, {{commands_name}}, {{options_name}}, {{variables_name}}, {{help}}, {{help_option}}, {{unknown_option}}, {{unknown_command}}, {{unknown_variable}}, {{properties[:action]}}, {{properties[:commands]}}, {{properties[:arguments]}},
           # Merge options for recursive use in subcommands
           {% if options.is_a? NamedTupleLiteral || properties[:options].is_a? NamedTupleLiteral %}
             options: { {% if options.is_a? NamedTupleLiteral %}
@@ -121,7 +112,6 @@ module Clicr
         {% if properties[:action] %}end{% end %}
         # action executed - nothing to parse anymore
         ARGV.clear
-
       {% end %}{% end %}
 
         # Help
@@ -191,6 +181,7 @@ module Clicr
       end
       ARGV.shift?
     end
+
     # At the end execute the command {{name}}
     {% if action != nil %}
       {{action.id}}({% if variables.is_a? NamedTupleLiteral %}

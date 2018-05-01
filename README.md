@@ -102,8 +102,6 @@ ARGV.replace %w(talk -j forename=Jack to_me)
 Clicr.create(
   name: "myapp",
   info: "Application default description",
-  version: "Default version",
-  version_name: "Version",
   usage_name: "Usage",
   commands_name: "Commands",
   options_name: "Options",
@@ -174,8 +172,10 @@ commands: {
 
 ### Arguments
 
+Example: `name`, `directory`
+
 ```crystal
-arguments: %(name folder),
+arguments: %(name directory),
 ```
 
 * list arguments required after the command in the following order
@@ -196,7 +196,7 @@ options: {
 
 * apply recursively to subcommands
 * are only booleans, with `false` at default when not set
-* `alias: true` create an alias with the first char of the option, like `-v` for `--version`
+* `alias: true` create an alias with the first char of the option, like `-i` for `--info`
 * containing single character arguments like `-` is possible
 
 Special case, the `help_option`, which is set to `"help"` with the options `-h, --help` by default
@@ -218,7 +218,7 @@ variables: {
 
 * apply recursively to subcommands
 * can only be `String` (because arguments as `ARGV` passed are `Array(String)`) - if others type are needed, the cast must be done after the `action` method call
-* if no `default` value is not set, `nil` will be the default one
+* if no `default` value is set, `nil` will be the default one
 
 ## License
 
