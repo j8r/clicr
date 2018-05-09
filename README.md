@@ -32,7 +32,7 @@ Clicr.create(
   info: "Myapp can do everything",
   commands: {
     talk: {
-      alias: true,
+      alias: 't',
       info: "Talk",
       action: say,
       arguments: %w(directory),
@@ -46,7 +46,7 @@ Clicr.create(
    },
    options: {
      yes: {
-       alias: true,
+       short: 'y',
        info: "Print the name",
      }
    }
@@ -64,7 +64,6 @@ end
 Example of commands:
 ```
 $ myapp --help
-
 Usage: myapp DIRECTORY [VARIABLES] [OPTIONS]
 
 Myapp can do everything
@@ -79,13 +78,16 @@ Commands:
   t, talk        Talk
 
 'myapp --help' to show the help
-
+```
+```
 $ myapp talk /tmp name=bar
 no, bar in /tmp
-
+```
+```
 $ myapp talk home name=bar -y
 yes, bar in home
-
+```
+```
 $ myapp talk test
 no, foo in test
 ```
@@ -113,11 +115,11 @@ Clicr.create(
   unknown_variable: "Unknown variable",
   commands: {
     talk: {
-      alias: true,
+      alias: 't',
       info: "Talk",
       options: {
         joking: {
-          alias: true,
+          short: 'j',
           info: "Joke tone"
         }
       },
@@ -162,13 +164,14 @@ Example: `s`, `start`
 ```crystal
 commands: {
   start: {
+    alias: 's',
     info: "Starts the server",
     action: say,
   }
 }
 ```
 
-* `alias: true` create an alias with the first char of the commands, like `v` for `version`
+* `alias` creates an alias of the command. The alias mustn't already exist
 
 ### Arguments
 
@@ -188,16 +191,15 @@ Example: `-y`, `--yes`
 ```crystal
 options: {
   yes: {
-    alias: true,
+    short: 'y',
     info: "No confirmations",
   }
 }
 ```
 
 * apply recursively to subcommands
-* are only booleans, with `false` at default when not set
-* `alias: true` create an alias with the first char of the option, like `-i` for `--info`
-* containing single character arguments like `-` is possible
+* `short` creates a short alias of one character - must be a `Char`
+* concatenating single characters arguments like `-Ry1` is possible
 
 Special case, the `help_option`, which is set to `"help"` with the options `-h, --help` by default
 * Shows the help of the current (sub)command

@@ -57,8 +57,8 @@ module Clicr
         # Generate commands match
       {% if commands.is_a? NamedTupleLiteral %}{% for key, properties in commands %}
       when "{{key}}" \
-        {% if properties[:alias] == true %} \
-            , "{{key.chars.first.id}}" \
+        {% if properties[:alias] %} \
+            , "{{properties[:alias].id}}" \
         {% end %}
 
         # Check if the required arguments are present
@@ -117,7 +117,6 @@ module Clicr
         # Help
       when "", "--{{help_option.id}}", "-{{help_option.chars.first.id}}"{% if action == nil %}, ARGV.last{% end %}
         puts <<-HELP
-
         {{usage_name.id}}: {{name.id}}\
         {% if arguments.is_a? ArrayLiteral %} {{arguments.join(' ').id.upcase}}{% end %}\
         {% if commands.is_a? NamedTupleLiteral %} {{commands_name.id.upcase}}{% end %} \
@@ -127,8 +126,8 @@ module Clicr
         {{info.id}}
         {% if options.is_a? NamedTupleLiteral %}
         {{options_name.id}}:{% for key, value in options %}
-          {% if value[:alias] == true %}\
-            -{{key.chars.first.id}}, \
+          {% if value[:short].is_a? CharLiteral %}\
+            -{{value[:short].id}}, \
           {% else %}    \
           {% end %}\
           --{{key}} \t {{value[:info].id}}\
@@ -141,14 +140,13 @@ module Clicr
         {% end %}\
         {% if commands.is_a? NamedTupleLiteral %}
         {{commands_name.id}}:{% for key, value in commands %}
-          {% if value[:alias] == true %}\
-            {{key.chars.first.id}}, \
+          {% if value[:alias] %}\
+            {{value[:alias].id}}, \
         {% else %}\
         {% end %}{{key}} \t {{value[:info].id}}\
         {% end %}
         {% end %}
         '{{name.id}} --{{help_option.id}}' {{help.id}}
-
 
         HELP
         # Help shown, nothing to parse anymore
@@ -156,8 +154,8 @@ module Clicr
         # Generate options match
       {% if options.is_a? NamedTupleLiteral %}{% for key, value in options %}
       when "--{{key}}" \
-        {% if value[:alias] == true %} \
-            , "-{{key.chars.first.id}}" \
+        {% if value[:short].is_a? CharLiteral %} \
+            , "-{{value[:short].id}}" \
         {% end %}
           {{key}} = true
       {% end %}{% end %}

@@ -7,12 +7,11 @@ struct SimpleCli
     Clicr.create(
       commands: {
         talk: {
-          alias: true,
+          alias: 't',
           info: "Talk",
           action: "test",
         },
         run: {
-          alias: false,
           info: "Tests vars",
           action: "run",
           arguments: %w(application folder),
@@ -26,7 +25,7 @@ struct SimpleCli
       },
       options: {
         yes: {
-          alias: true,
+          short: 'y',
           info: "Print the name",
         }
       }
