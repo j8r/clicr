@@ -110,9 +110,9 @@ Clicr.create(
   variables_name: "Variables",
   help: "to show the help",
   help_option: "help",
+  no_argument: "requires at least one argument",
   unknown_option: "Unknown option",
-  unknown_command: "Unknown command or variable",
-  unknown_variable: "Unknown variable",
+  unknown_command_variable: "Unknown command or variable",
   commands: {
     talk: {
       alias: 't',
@@ -178,11 +178,12 @@ commands: {
 Example: `name`, `directory`
 
 ```crystal
-arguments: %(name directory),
+arguments: %w(directory names...),
 ```
 
 * list arguments required after the command in the following order
 * when arguments are specified, they becomes **mandatory**
+* if an argument name ends with `...`, **all** following arguments will be appended to it as an `Array(String)`. The loop also stops if an option is encountered.
 
 ### Options
 
@@ -221,6 +222,28 @@ variables: {
 * apply recursively to subcommands
 * can only be `String` (because arguments as `ARGV` passed are `Array(String)`) - if others type are needed, the cast must be done after the `action` method call
 * if no `default` value is set, `nil` will be the default one
+
+## Error handling
+
+When the command issued can't be performed, an exception is raised.
+The causes can correspond to either `help`, `no_argument`, `unknown_option` or `unknown_command_variable`.
+
+You can catch the exception's causes like this:
+
+```crystal
+begin
+  Clicr.create(
+  ...
+  )
+rescue ex
+  puts ex
+  exit case ex.cause.to_s
+  when "help" then 0
+  when "no_argument", "unknown_option", "unknown_command_variable" then 1
+  else 1
+  end
+end
+```
 
 ## License
 

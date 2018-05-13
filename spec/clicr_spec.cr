@@ -7,27 +7,32 @@ struct SimpleCli
     Clicr.create(
       commands: {
         talk: {
-          alias: 't',
-          info: "Talk",
+          alias:  't',
+          info:   "Talk",
           action: "test",
         },
         run: {
-          info: "Tests vars",
-          action: "run",
+          info:      "Tests vars",
+          action:    "run",
           arguments: %w(application folder),
+        },
+        test_array: {
+          info:      "Tests arrays",
+          action:    "array",
+          arguments: %w(app numbers...),
         },
       },
       variables: {
         name: {
-          info: "Your name",
+          info:    "Your name",
           default: "foo",
         },
       },
       options: {
         yes: {
           short: 'y',
-          info: "Print the name",
-        }
+          info:  "Print the name",
+        },
       }
     )
   end
@@ -38,6 +43,10 @@ struct SimpleCli
 
   def run(name, yes, application, folder)
     @result = application + " runned in " + folder
+  end
+
+  def array(name, yes, app, numbers)
+    @result = numbers.join(' ')
   end
 end
 
@@ -58,6 +67,11 @@ describe Clicr do
       it "use" do
         ARGV.replace ["run", "myapp", "/tmp"]
         SimpleCli.new.result.should eq "myapp runned in /tmp"
+      end
+
+      it "use" do
+        ARGV.replace ["test_array", "app", "2", "3"]
+        SimpleCli.new.result.should eq "2 3"
       end
     end
 
