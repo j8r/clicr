@@ -9,8 +9,8 @@ module Clicr
     help = "to show the help",
     help_option = "help",
     no_argument = "requires at least one argument",
-    unknown_option = "Unknown option",
-    unknown_command_variable = "Unknown command or variable",
+    unknown_option = "unknown option",
+    unknown_command_variable = "unknown command or variable",
     action = nil,
     commands = NamedTupleLiteral,
     arguments = ArrayLiteral,
@@ -47,15 +47,15 @@ module Clicr
             end
           end
         else
-          # If no arguments followed
-          raise Exception.new("'{{arg.id.upcase}}' {{no_argument.id}}\n'{{name.id}} --{{help_option.id}}' {{help.id}}", Exception.new "no_argument")
+          # If no argument followed
+          raise Exception.new("{{name.id}}: {{arg.id}}: {{no_argument.id}}\n'{{name.id}} --{{help_option.id}}' {{help.id}}", Exception.new "no_argument")
         end
       # Simple arguments
       {% else %}
         {{arg.id}} = ""
         case arg = ARGV.first?
         when nil
-          raise Exception.new("'{{arg.id.upcase}}' {{no_argument.id}}\n'{{name.id}} --{{help_option.id}}' {{help.id}}", Exception.new "no_argument")
+          raise Exception.new("{{name.id}}: {{arg.id.upcase}}: {{no_argument.id}}\n'{{name.id}} --{{help_option.id}}' {{help.id}}", Exception.new "no_argument")
         when "", "--{{help_option.id}}", "-{{help_option.chars.first.id}}"
         else
           {{arg.id}} = arg
@@ -88,7 +88,7 @@ module Clicr
               {{arg.id}} = ""
             {% end %}
             if ARGV.size == 1
-              raise Exception.new("'{{arg.id.upcase}}' {{no_argument.id}}\n'{{name.id}} --{{help_option.id}}' {{help.id}}", Exception.new "no_argument")
+              raise Exception.new("{{name.id}} {{arg.id.upcase}} - {{no_argument.id}}\n'{{name.id}} --{{help_option.id}}' {{help.id}}", Exception.new "no_argument")
             end
           {% end %}
           # Print the help
@@ -194,15 +194,15 @@ module Clicr
       {% end %}{% end %}
 
         # Exceptions
-      when .starts_with? "--"  then raise Exception.new("{{unknown_option.id}}: '#{ARGV}'\n'{{name.id}} --{{help_option.id}}' {{help.id}}", Exception.new "unknown_option")
+      when .starts_with? "--"  then raise Exception.new("{{name.id}}: {{unknown_option.id}}: '#{ARGV}'\n'{{name.id}} --{{help_option.id}}' {{help.id}}", Exception.new "unknown_option")
       when .starts_with? '-'
         # Invalid option
-        raise Exception.new("{{unknown_option.id}}: '#{ARGV}'\n'{{name.id}} -{{help_option.id}}' {{help.id}}", Exception.new "unknown_option") if ARGV.first.size == 2
+        raise Exception.new("{{name.id}}: {{unknown_option.id}}: '#{ARGV}'\n'{{name.id}} -{{help_option.id}}' {{help.id}}", Exception.new "unknown_option") if ARGV.first.size == 2
         # Multi options
         ARGV.first.lchop.each_char { |opt| ARGV.insert 0, "-#{opt}" }
 
       else
-        raise Exception.new("{{unknown_command_variable.id}}: '#{ARGV.first}'\n'{{name.id}} --{{help_option.id}}' {{help.id}}", Exception.new "unknown_command_variable")
+        raise Exception.new("{{name.id}}: {{unknown_command_variable.id}}: '#{ARGV.first}'\n'{{name.id}} --{{help_option.id}}' {{help.id}}", Exception.new "unknown_command_variable")
       end
       ARGV.shift?
     end
