@@ -8,7 +8,7 @@ module Clicr
     variables_name = "Variables",
     help = "to show the help",
     help_option = "help",
-    no_argument = "requires at least one argument",
+    argument_required = "requires at least one argument",
     unknown_option = "unknown option",
     unknown_command_variable = "unknown command or variable",
     action = nil,
@@ -46,16 +46,13 @@ module Clicr
               ARGV.shift
             end
           end
-        else
-          # If no argument followed
-          raise Exception.new("{{name.id}}: {{arg.id}}: {{no_argument.id}}\n'{{name.id}} --{{help_option.id}}' {{help.id}}", Exception.new "no_argument")
         end
       # Simple arguments
       {% else %}
         {{arg.id}} = ""
         case arg = ARGV.first?
         when nil
-          raise Exception.new("{{name.id}}: {{arg.id.upcase}}: {{no_argument.id}}\n'{{name.id}} --{{help_option.id}}' {{help.id}}", Exception.new "no_argument")
+          raise Exception.new("{{name.id}}: {{arg.id.upcase}}: {{argument_required.id}}\n'{{name.id}} --{{help_option.id}}' {{help.id}}", Exception.new "argument_required")
         when "", "--{{help_option.id}}", "-{{help_option.chars.first.id}}"
         else
           {{arg.id}} = arg
@@ -88,7 +85,7 @@ module Clicr
               {{arg.id}} = ""
             {% end %}
             if ARGV.size == 1
-              raise Exception.new("{{name.id}} {{arg.id.upcase}} - {{no_argument.id}}\n'{{name.id}} --{{help_option.id}}' {{help.id}}", Exception.new "no_argument")
+              raise Exception.new("{{name.id}} {{arg.id.upcase}} - {{argument_required.id}}\n'{{name.id}} --{{help_option.id}}' {{help.id}}", Exception.new "argument_required")
             end
           {% end %}
           # Print the help
@@ -120,7 +117,7 @@ module Clicr
 
         # Options are variables that apply recursively to subcommands
         Clicr.create(
-          "{{name.id}} {{key.id}}", {{info}}, {{usage_name}}, {{commands_name}}, {{options_name}}, {{variables_name}}, {{help}}, {{help_option}}, {{no_argument}}, {{unknown_option}}, {{unknown_command_variable}}, {{properties[:action]}}, {{properties[:commands]}}, {{properties[:arguments]}},
+          "{{name.id}} {{key.id}}", {{info}}, {{usage_name}}, {{commands_name}}, {{options_name}}, {{variables_name}}, {{help}}, {{help_option}}, {{argument_required}}, {{unknown_option}}, {{unknown_command_variable}}, {{properties[:action]}}, {{properties[:commands]}}, {{properties[:arguments]}},
           # Merge options for recursive use in subcommands
           {% if options.is_a? NamedTupleLiteral || properties[:options].is_a? NamedTupleLiteral %}
             options: { {% if options.is_a? NamedTupleLiteral %}
@@ -148,8 +145,8 @@ module Clicr
         raise Exception.new(<<-HELP
         {{usage_name.id}}: {{name.id}}\
         {% if arguments.is_a? ArrayLiteral %} {{arguments.join(' ').id.upcase}}{% end %}\
-        {% if commands.is_a? NamedTupleLiteral %} {{commands_name.id.upcase}}{% end %} \
-        {% if variables.is_a? NamedTupleLiteral %} [{{variables_name.id.upcase}}]{% end %} \
+        {% if commands.is_a? NamedTupleLiteral %} {{commands_name.id.upcase}}{% end %}\
+        {% if variables.is_a? NamedTupleLiteral %} [{{variables_name.id.upcase}}]{% end %}\
         {% if options.is_a? NamedTupleLiteral %} [{{options_name.id.upcase}}]{% end %}
 
         {{info.id}}
@@ -194,10 +191,10 @@ module Clicr
       {% end %}{% end %}
 
         # Exceptions
-      when .starts_with? "--"  then raise Exception.new("{{name.id}}: {{unknown_option.id}}: '#{ARGV}'\n'{{name.id}} --{{help_option.id}}' {{help.id}}", Exception.new "unknown_option")
+      when .starts_with? "--"  then raise Exception.new("{{name.id}}: {{unknown_option.id}}: '#{ARGV.first}'\n'{{name.id}} --{{help_option.id}}' {{help.id}}", Exception.new "unknown_option")
       when .starts_with? '-'
         # Invalid option
-        raise Exception.new("{{name.id}}: {{unknown_option.id}}: '#{ARGV}'\n'{{name.id}} -{{help_option.id}}' {{help.id}}", Exception.new "unknown_option") if ARGV.first.size == 2
+        raise Exception.new("{{name.id}}: {{unknown_option.id}}: '#{ARGV.first}'\n'{{name.id}} --{{help_option.id}}' {{help.id}}", Exception.new "unknown_option") if ARGV.first.size == 2
         # Multi options
         ARGV.first.lchop.each_char { |opt| ARGV.insert 0, "-#{opt}" }
 

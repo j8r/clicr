@@ -110,7 +110,7 @@ Clicr.create(
   variables_name: "Variables",
   help: "to show the help",
   help_option: "help",
-  no_argument: "requires at least one argument",
+  argument_required: "requires at least one argument",
   unknown_option: "Unknown option",
   unknown_command_variable: "Unknown command or variable",
   commands: {
@@ -183,7 +183,8 @@ arguments: %w(directory names...),
 
 * list arguments required after the command in the following order
 * when arguments are specified, they becomes **mandatory**
-* if an argument name ends with `...`, **all** following arguments will be appended to it as an `Array(String)`. The loop also stops if an option is encountered.
+* if an argument name ends with `...`, **all** following arguments will be appended to it as an `Array(String)`
+* an argument that ends with `...` isn't mandatory - it will have an empty `Array(String).new` default value
 
 ### Options
 
@@ -226,7 +227,7 @@ variables: {
 ## Error handling
 
 When the command issued can't be performed, an exception is raised.
-The causes can correspond to either `help`, `no_argument`, `unknown_option` or `unknown_command_variable`.
+The causes can correspond to either `help`, `argument_required`, `unknown_option` or `unknown_command_variable`.
 
 You can catch the exception's causes like this:
 
@@ -239,7 +240,7 @@ rescue ex
   puts ex
   exit case ex.cause.to_s
   when "help" then 0
-  when "no_argument", "unknown_option", "unknown_command_variable" then 1
+  when "argument_required", "unknown_option", "unknown_command_variable" then 1
   else 1
   end
 end
