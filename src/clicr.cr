@@ -82,11 +82,11 @@ module Clicr
             {% if arg.ends_with? "..." %}
               {{arg[0..-4].id}} = Array(String).new
             {% else %}
+              if ARGV.size == 1
+                raise Exception.new("{{name.id}} {{arg.id.upcase}} - {{argument_required.id}}\n'{{name.id}} --{{help_option.id}}' {{help.id}}", Exception.new "argument_required")
+              end
               {{arg.id}} = ""
             {% end %}
-            if ARGV.size == 1
-              raise Exception.new("{{name.id}} {{arg.id.upcase}} - {{argument_required.id}}\n'{{name.id}} --{{help_option.id}}' {{help.id}}", Exception.new "argument_required")
-            end
           {% end %}
           # Print the help
           ARGV.replace ["", ""] if ARGV.size == 1
@@ -173,7 +173,6 @@ module Clicr
         {% end %}
         {% end %}
         '{{name.id}} --{{help_option.id}}' {{help.id}}
-
         HELP, Exception.new "help")
         # Generate options match
       {% if options.is_a? NamedTupleLiteral %}{% for key, value in options %}
