@@ -15,7 +15,7 @@ module Clicr
     commands = NamedTupleLiteral,
     arguments = ArrayLiteral,
     options = NamedTupleLiteral,
-    variables = NamedTupleLiteral,
+    variables = NamedTupleLiteral
   )
   # {{name}}
   # Needed to have variables "namespaced"
@@ -142,7 +142,8 @@ module Clicr
 
         # Help
       when "", "--{{help_option.id}}", "-{{help_option.chars.first.id}}"{% if action == nil %}, ARGV.last{% end %}
-        raise Exception.new(<<-HELP
+        raise Exception.new(
+        <<-HELP
         {{usage_name.id}}: {{name.id}}\
         {% if arguments.is_a? ArrayLiteral %} {{arguments.join(' ').id.upcase}}{% end %}\
         {% if commands.is_a? NamedTupleLiteral %} {{commands_name.id.upcase}}{% end %}\
@@ -173,7 +174,8 @@ module Clicr
         {% end %}
         {% end %}
         '{{name.id}} --{{help_option.id}}' {{help.id}}
-        HELP, Exception.new "help")
+        HELP
+        , Exception.new "help")
         # Generate options match
       {% if options.is_a? NamedTupleLiteral %}{% for key, value in options %}
       when "--{{key}}" \
