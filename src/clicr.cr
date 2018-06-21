@@ -70,8 +70,8 @@ module Clicr
 
       case ARGV.first
         # Generate commands match
-      {% if commands.is_a? NamedTupleLiteral %}{% for key, properties in commands %}
-      when "{{key}}" \
+      {% if commands.is_a? NamedTupleLiteral %}{% for subcommand, properties in commands %}
+      when "{{subcommand}}" \
         {% if properties[:alias] %} \
             , "{{properties[:alias].id}}" \
         {% end %}
@@ -83,7 +83,7 @@ module Clicr
               {{arg[0..-4].id}} = Array(String).new
             {% else %}
               if ARGV.size == 1
-                raise Exception.new("{{name.id}} {{arg.id.upcase}} - {{argument_required.id}}\n'{{name.id}} --{{help_option.id}}' {{help.id}}", Exception.new "argument_required")
+                raise Exception.new("{{name.id}} {{subcommand.id}} {{arg.id.upcase}} - {{argument_required.id}}\n'{{name.id}} --{{help_option.id}}' {{help.id}}", Exception.new "argument_required")
               end
               {{arg.id}} = ""
             {% end %}
@@ -92,14 +92,14 @@ module Clicr
           ARGV.replace ["", ""] if ARGV.size == 1
         {% end %}
 
-        # Perform action for {{name.id}} {{key.id}} if no more arguments
+        # Perform action for {{name.id}} {{subcommand.id}} if no more arguments
         {% if properties[:action] %}
         if ARGV.size == 1
           {{properties[:action].id}}({% if variables.is_a? NamedTupleLiteral %}\
-             {% for var, x in variables %}{{var.id}}: {{var.id}},
+             {% for var, _x in variables %}{{var.id}}: {{var.id}},
           {% end %}{% end %}\
           {% if options.is_a? NamedTupleLiteral %}\
-             {% for opt, x in options %}{{opt.id}}: {{opt.id}},
+             {% for opt, _x in options %}{{opt.id}}: {{opt.id}},
           {% end %}{% end %}\
           {% if properties[:arguments].is_a? ArrayLiteral %}\
             {% for arg in properties[:arguments] %}
@@ -117,21 +117,22 @@ module Clicr
 
         # Options are variables that apply recursively to subcommands
         Clicr.create(
-          "{{name.id}} {{key.id}}", {{info}}, {{usage_name}}, {{commands_name}}, {{options_name}}, {{variables_name}}, {{help}}, {{help_option}}, {{argument_required}}, {{unknown_option}}, {{unknown_command_variable}}, {{properties[:action]}}, {{properties[:commands]}}, {{properties[:arguments]}},
+          "{{name.id}} {{subcommand.id}}", {{properties[:info]}}, {{usage_name}}, {{commands_name}}, {{options_name}}, {{variables_name}}, {{help}}, {{help_option}}, {{argument_required}}, {{unknown_option}}, {{unknown_command_variable}}, {{properties[:action]}}, {{properties[:commands]}}, {{properties[:arguments]}},
+          # ":initialized" is used to tell that the variable is declared, and not declare it again (thus override it) in further blocks
           # Merge options for recursive use in subcommands
           {% if options.is_a? NamedTupleLiteral || properties[:options].is_a? NamedTupleLiteral %}
             options: { {% if options.is_a? NamedTupleLiteral %}
-              {% for key, values in options %}{% values[:initialized] = true %} {{key.id}}: {{values.id}},{% end %}
+              {% for option, values in options %}{% values[:initialized] = true %} {{option.id}}: {{values.id}},{% end %}
             {% end %}{% if properties[:options].is_a? NamedTupleLiteral %}
-              {% for key, values in properties[:options] %}{{key.id}}: {{values.id}},{% end %}
+              {% for subcommand, values in properties[:options] %}{{subcommand.id}}: {{values.id}},{% end %}
             {% end %} },
           {% end %}
           # Merge variables for recursive use in subcommands
           {% if variables.is_a? NamedTupleLiteral || properties[:variables].is_a? NamedTupleLiteral %}
             variables: { {% if variables.is_a? NamedTupleLiteral %}
-              {% for key, values in variables %}{% values[:initialized] = true %} {{key.id}}: {{values.id}},{% end %}
+              {% for var, values in variables %}{% values[:initialized] = true %} {{var.id}}: {{values.id}},{% end %}
             {% end %}{% if properties[:variables].is_a? NamedTupleLiteral %}
-              {% for key, values in properties[:variables] %}{{key.id}}: {{values.id}},{% end %}
+              {% for var, values in properties[:variables] %}{{var.id}}: {{values.id}},{% end %}
             {% end %} },
           {% end %}
         )
@@ -152,43 +153,43 @@ module Clicr
 
         {{info.id}}
         {% if options.is_a? NamedTupleLiteral %}
-        {{options_name.id}}:{% for key, value in options %}
+        {{options_name.id}}:{% for opt, value in options %}
           {% if value[:short].is_a? CharLiteral %}\
             -{{value[:short].id}}, \
           {% else %}    \
           {% end %}\
-          --{{key}} \t {{value[:info].id}}\
+          --{{opt}} \t {{value[:info].id}}\
         {% end %}
         {% end %}\
         {% if variables.is_a? NamedTupleLiteral %}
-        {{variables_name.id}}:{% for key, value in variables %}
-          {{key}}={{value[:default].id}} \t {{value[:info].id}}\
+        {{variables_name.id}}:{% for var, value in variables %}
+          {{var}}={{value[:default].id}} \t {{value[:info].id}}\
         {% end %}
         {% end %}\
         {% if commands.is_a? NamedTupleLiteral %}
-        {{commands_name.id}}:{% for key, value in commands %}
+        {{commands_name.id}}:{% for command, value in commands %}
           {% if value[:alias] %}\
             {{value[:alias].id}}, \
         {% else %}\
-        {% end %}{{key}} \t {{value[:info].id}}\
+        {% end %}{{command}} \t {{value[:info].id}}\
         {% end %}
         {% end %}
         '{{name.id}} --{{help_option.id}}' {{help.id}}
         HELP
         , Exception.new "help")
         # Generate options match
-      {% if options.is_a? NamedTupleLiteral %}{% for key, value in options %}
-      when "--{{key}}" \
+      {% if options.is_a? NamedTupleLiteral %}{% for opt, value in options %}
+      when "--{{opt}}" \
         {% if value[:short].is_a? CharLiteral %} \
             , "-{{value[:short].id}}" \
         {% end %}
-          {{key}} = true
+          {{opt}} = true
       {% end %}{% end %}
 
       # Generate variables match
-      {% if variables.is_a? NamedTupleLiteral %}{% for key, value in variables %}
-      when .starts_with? "{{key}}="
-          {{key}} = ARGV.first[{{key.size + 1}}..-1]
+      {% if variables.is_a? NamedTupleLiteral %}{% for var, value in variables %}
+      when .starts_with? "{{var}}="
+          {{var}} = ARGV.first[{{var.size + 1}}..-1]
       {% end %}{% end %}
 
         # Exceptions
@@ -208,10 +209,10 @@ module Clicr
     # At the end execute the command {{name}}
     {% if action != nil %}
       {{action.id}}({% if variables.is_a? NamedTupleLiteral %}\
-         {% for var, x in variables %}{{var.id}}: {{var.id}},
+         {% for var, _x in variables %}{{var.id}}: {{var.id}},
       {% end %}{% end %}\
       {% if options.is_a? NamedTupleLiteral %}
-         {% for opt, x in options %}{{opt.id}}: {{opt.id}},
+         {% for opt, _x in options %}{{opt.id}}: {{opt.id}},
       {% end %}{% end %}\
       {% if arguments.is_a? ArrayLiteral %}\
         {% for arg in arguments %}\

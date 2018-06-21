@@ -1,5 +1,7 @@
 # Clicr
 
+[![ISC](https://img.shields.io/badge/License-ISC-blue.svg?style=flat-square)](https://en.wikipedia.org/wiki/ISC_license)
+
 Command Line Interface for Crystal
 
 A simple Command line interface builder which aims to be easy to use.
