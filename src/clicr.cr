@@ -146,10 +146,10 @@ module Clicr
         raise Exception.new(
         <<-HELP
         {{usage_name.id}}: {{name.id}}\
-        {% if arguments.is_a? ArrayLiteral %} {{arguments.join(' ').id.upcase}}{% end %}\
-        {% if commands.is_a? NamedTupleLiteral %} {{commands_name.id.upcase}}{% end %}\
+        {% if options.is_a? NamedTupleLiteral %} [{{options_name.id.upcase}}]{% end %}\
         {% if variables.is_a? NamedTupleLiteral %} [{{variables_name.id.upcase}}]{% end %}\
-        {% if options.is_a? NamedTupleLiteral %} [{{options_name.id.upcase}}]{% end %}
+        {% if commands.is_a? NamedTupleLiteral %} {{commands_name.id.upcase}}{% end %}\
+        {% if arguments.is_a? ArrayLiteral %} {{arguments.join(' ').id.upcase}}{% end %}
 
         {{info.id}}
         {% if options.is_a? NamedTupleLiteral %}

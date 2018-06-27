@@ -185,8 +185,7 @@ arguments: %w(directory names...),
 
 * list arguments required after the command in the following order
 * when arguments are specified, they becomes **mandatory**
-* if an argument name ends with `...`, **all** following arguments will be appended to it as an `Array(String)`
-* an argument that ends with `...` isn't mandatory - it will have an empty `Array(String).new` default value
+* if an argument name ends with `...`, it isn't mandatory and have a default empty `Array(String)` value. All following arguments will be appended to it.
 
 ### Options
 
