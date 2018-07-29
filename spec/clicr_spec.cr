@@ -21,6 +21,22 @@ struct SimpleCli
           action:    "array",
           arguments: %w(app numbers...),
         },
+        options_variables: {
+          info:      "Test sub options/variables",
+          action:    "options_variables",
+          variables: {
+            subvar: {
+              info:    "sub variable",
+              default: "SUB",
+            },
+          },
+          options: {
+            subopt: {
+              short: 's',
+              info:  "sub options",
+            },
+          },
+        },
       },
       variables: {
         name: {
@@ -47,6 +63,10 @@ struct SimpleCli
 
   def array(name, yes, app, numbers)
     @result = numbers.join(' ')
+  end
+
+  def options_variables(name, yes, subopt, subvar)
+    @result = "#{subopt} #{subvar}"
   end
 end
 
@@ -95,17 +115,21 @@ describe Clicr do
         ARGV.replace ["talk", "-y"]
         SimpleCli.new.result.should eq "yes foo"
       end
-      it "set option at the beginning" do
-        ARGV.replace ["--yes", "talk"]
-        SimpleCli.new.result.should eq "yes foo"
+    end
+
+    describe "options/variables of sub command" do
+      it "by setting no values" do
+        ARGV.replace ["options_variables"]
+        SimpleCli.new.result.should eq "false SUB"
       end
-      it "set single character option at the beginning" do
-        ARGV.replace ["-y", "talk"]
-        SimpleCli.new.result.should eq "yes foo"
+      it "by setting values" do
+        ARGV.replace ["options_variables", "-s", "subvar=VALUE"]
+        SimpleCli.new.result.should eq "true VALUE"
       end
     end
+
     it "set all parameters" do
-      ARGV.replace ["-y", "name=bar", "talk"]
+      ARGV.replace ["talk", "-y", "name=bar"]
       SimpleCli.new.result.should eq "yes bar"
     end
   end

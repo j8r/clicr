@@ -222,13 +222,13 @@ variables: {
 ```
 
 * apply recursively to subcommands
-* can only be `String` (because arguments as `ARGV` passed are `Array(String)`) - if others type are needed, the cast must be done after the `action` method call
+* can only be `String` (because arguments passed as `ARGV` are `Array(String)`) - if others type are needed, the cast must be done after the `action` method call
 * if no `default` value is set, `nil` will be the default one
 
 ## Error handling
 
 When the command issued can't be performed, an exception is raised.
-The causes can correspond to either `help`, `argument_required`, `unknown_option` or `unknown_command_variable`.
+The cause can correspond to either `help`, `argument_required`, `unknown_option` or `unknown_command_variable`.
 
 You can catch the exception's causes like this:
 
@@ -238,11 +238,10 @@ begin
   ...
   )
 rescue ex
-  puts ex
-  exit case ex.cause.to_s
-  when "help" then 0
-  when "argument_required", "unknown_option", "unknown_command_variable" then 1
-  else 1
+  case ex.cause.to_s
+  when "help" then puts ex; exit 0
+  when "argument_required", "unknown_option", "unknown_command_variable" then abort ex
+  else abort ex
   end
 end
 ```

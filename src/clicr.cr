@@ -76,42 +76,6 @@ module Clicr
             , "{{properties[:alias].id}}" \
         {% end %}
 
-        # Check if the required arguments are present
-        {% if properties[:arguments].is_a? ArrayLiteral %}
-          {% for arg in properties[:arguments] %}\
-            {% if arg.ends_with? "..." %}
-              {{arg[0..-4].id}} = Array(String).new
-            {% else %}
-              if ARGV.size == 1
-                raise Exception.new("{{name.id}} {{subcommand.id}} {{arg.id.upcase}} - {{argument_required.id}}\n'{{name.id}} --{{help_option.id}}' {{help.id}}", Exception.new "argument_required")
-              end
-              {{arg.id}} = ""
-            {% end %}
-          {% end %}
-          # Print the help
-          ARGV.replace ["", ""] if ARGV.size == 1
-        {% end %}
-
-        # Perform action for {{name.id}} {{subcommand.id}} if no more arguments
-        {% if properties[:action] %}
-        if ARGV.size == 1
-          {{properties[:action].id}}({% if variables.is_a? NamedTupleLiteral %}\
-             {% for var, _x in variables %}{{var.id}}: {{var.id}},
-          {% end %}{% end %}\
-          {% if options.is_a? NamedTupleLiteral %}\
-             {% for opt, _x in options %}{{opt.id}}: {{opt.id}},
-          {% end %}{% end %}\
-          {% if properties[:arguments].is_a? ArrayLiteral %}\
-            {% for arg in properties[:arguments] %}
-            {% if arg.ends_with? "..." %}\
-              {{arg[0..-4].id}}: {{arg[0..-4].id}},
-            {% else %}\
-              {{arg.id}}: {{arg.id}},
-            {% end %}\
-          {% end %}{% end %})
-        else
-        {% end %}
-
         # Remove the command executed
         ARGV.shift?
 
@@ -136,20 +100,16 @@ module Clicr
             {% end %} },
           {% end %}
         )
-        {% if properties[:action] %}end{% end %}
-        # action executed - nothing to parse anymore
-        ARGV.clear
-      {% end %}{% end %}
-
+      {% end %} {% end %}
         # Help
       when "", "--{{help_option.id}}", "-{{help_option.chars.first.id}}"{% if action == nil %}, ARGV.last{% end %}
         raise Exception.new(
         <<-HELP
         {{usage_name.id}}: {{name.id}}\
-        {% if options.is_a? NamedTupleLiteral %} [{{options_name.id.upcase}}]{% end %}\
-        {% if variables.is_a? NamedTupleLiteral %} [{{variables_name.id.upcase}}]{% end %}\
+        {% if arguments.is_a? ArrayLiteral %} {{arguments.join(' ').id.upcase}}{% end %}\
         {% if commands.is_a? NamedTupleLiteral %} {{commands_name.id.upcase}}{% end %}\
-        {% if arguments.is_a? ArrayLiteral %} {{arguments.join(' ').id.upcase}}{% end %}
+        {% if variables.is_a? NamedTupleLiteral %} [{{variables_name.id.upcase}}]{% end %}\
+        {% if options.is_a? NamedTupleLiteral %} [{{options_name.id.upcase}}]{% end %}
 
         {{info.id}}
         {% if options.is_a? NamedTupleLiteral %}
