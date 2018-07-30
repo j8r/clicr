@@ -20,6 +20,11 @@ struct SimpleCli
           info:      "Tests arrays",
           action:    "array",
           arguments: %w(app numbers...),
+          variables: {
+            var: {
+              default: nil,
+            },
+          },
         },
         options_variables: {
           info:      "Test sub options/variables",
@@ -61,8 +66,8 @@ struct SimpleCli
     @result = application + " runned in " + folder
   end
 
-  def array(name, yes, app, numbers)
-    @result = numbers.join(' ')
+  def array(name, yes, app, numbers, var)
+    @result = "#{numbers.join(' ')} #{var}"
   end
 
   def options_variables(name, yes, subopt, subvar)
@@ -84,14 +89,29 @@ describe Clicr do
     end
 
     describe "arguments" do
-      it "use" do
+      it "uses simple" do
         ARGV.replace ["run", "myapp", "/tmp"]
         SimpleCli.new.result.should eq "myapp runned in /tmp"
       end
 
-      it "use" do
+      it "uses multiple" do
         ARGV.replace ["test_array", "app", "2", "3"]
-        SimpleCli.new.result.should eq "2 3"
+        SimpleCli.new.result.should eq "2 3 "
+      end
+
+      it "sets a variable at the end" do
+        ARGV.replace ["test_array", "app", "2", "3", "var=T"]
+        SimpleCli.new.result.should eq "2 3 T"
+      end
+
+      it "sets a variable at the begining" do
+        ARGV.replace ["test_array", "app", "var=T", "2", "3"]
+        SimpleCli.new.result.should eq "2 3 T"
+      end
+
+      it "sets a variable in the midde" do
+        ARGV.replace ["test_array", "app", "2", "var=T", "3"]
+        SimpleCli.new.result.should eq "2 3 T"
       end
     end
 

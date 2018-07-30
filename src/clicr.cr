@@ -35,18 +35,6 @@ module Clicr
       # Array arguments
       {% if arg.ends_with? "..." %}
         {{arg[0..-4].id}} = Array(String).new
-        if ARGV.first?
-          # Append following arguments
-          while !ARGV.empty?
-            case arg = ARGV.first
-            when "", .starts_with? '-'
-              break
-            else
-              {{arg[0..-4].id}} << arg
-              ARGV.shift
-            end
-          end
-        end
       # Simple arguments
       {% else %}
         {{arg.id}} = ""
@@ -60,6 +48,11 @@ module Clicr
         end
       {% end %}
     {% end %}
+  {% end %}
+  
+  # Print help if there are required following commands
+  {% if commands.is_a? NamedTupleLiteral %}
+    ARGV << "" if ARGV.empty?
   {% end %}
 
   # Loop while there are argument
@@ -152,7 +145,12 @@ module Clicr
           {{var}} = ARGV.first[{{var.size + 1}}..-1]
       {% end %}{% end %}
 
+      {% if arguments.is_a? ArrayLiteral && arguments[-1].ends_with? "..." %}
+      else
+        {{arguments[-1][0..-4].id}} << ARGV.first
+      {% else %}
         # Exceptions
+
       when .starts_with? "--"  then raise Exception.new("{{name.id}}: {{unknown_option.id}}: '#{ARGV.first}'\n'{{name.id}} --{{help_option.id}}' {{help.id}}", Exception.new "unknown_option")
       when .starts_with? '-'
         # Invalid option
@@ -161,7 +159,8 @@ module Clicr
         ARGV.first.lchop.each_char { |opt| ARGV.insert 0, "-#{opt}" }
 
       else
-        raise Exception.new("{{name.id}}: {{unknown_command_variable.id}}: '#{ARGV.first}'\n'{{name.id}} --{{help_option.id}}' {{help.id}}", Exception.new "unknown_command_variable")
+          raise Exception.new("{{name.id}}: {{unknown_command_variable.id}}: '#{ARGV.first}'\n'{{name.id}} --{{help_option.id}}' {{help.id}}", Exception.new "unknown_command_variable")
+      {% end %}
       end
       ARGV.shift?
     end
