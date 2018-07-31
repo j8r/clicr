@@ -49,7 +49,7 @@ module Clicr
       {% end %}
     {% end %}
   {% end %}
-  
+
   # Print help if there are required following commands
   {% if commands.is_a? NamedTupleLiteral %}
     ARGV << "" if ARGV.empty?
@@ -95,7 +95,7 @@ module Clicr
         )
       {% end %} {% end %}
         # Help
-      when "", "--{{help_option.id}}", "-{{help_option.chars.first.id}}"{% if action == nil %}, ARGV.last{% end %}
+      when "", "--{{help_option.id}}", "-{{help_option.chars.first.id}}"{% if !action %}, ARGV.last{% end %}
         raise Exception.new(
         <<-HELP
         {{usage_name.id}}: {{name.id}}\
@@ -116,7 +116,7 @@ module Clicr
         {% end %}\
         {% if variables.is_a? NamedTupleLiteral %}
         {{variables_name.id}}:{% for var, value in variables %}
-          {{var}}={{value[:default].id}} \t {{value[:info].id}}\
+          {{var}}{% if value[:default] %}={{value[:default].id}}{% else %}\t{% end %} \t {{value[:info].id}}\
         {% end %}
         {% end %}\
         {% if commands.is_a? NamedTupleLiteral %}
@@ -166,7 +166,7 @@ module Clicr
     end
 
     # At the end execute the command {{name}}
-    {% if action != nil %}
+    {% if action %}
       {{action.id}}({% if variables.is_a? NamedTupleLiteral %}\
          {% for var, _x in variables %}{{var.id}}: {{var.id}},
       {% end %}{% end %}\
