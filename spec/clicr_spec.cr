@@ -42,6 +42,16 @@ struct SimpleCli
             },
           },
         },
+        klass: {
+          info:      "klass",
+          action:    "@result = Klass.new().met",
+          variables: {
+            var: {
+              info:    "an variable passed to the constructor",
+              default: "default",
+            },
+          },
+        },
       },
       variables: {
         name: {
@@ -56,6 +66,17 @@ struct SimpleCli
         },
       }
     )
+  end
+
+  struct Klass
+    @var : String
+
+    def initialize(name, @var, yes)
+    end
+
+    def met
+      @var
+    end
   end
 
   def test(name, yes)
@@ -148,9 +169,14 @@ describe Clicr do
       end
     end
 
-    it "set all parameters" do
+    it "sets all parameters" do
       ARGV.replace ["talk", "-y", "name=bar"]
       SimpleCli.new.result.should eq "yes bar"
+    end
+
+    it "uses a variable assignation with a class and a method" do
+      ARGV.replace ["klass", "var=value"]
+      SimpleCli.new.result.should eq "value"
     end
   end
 end

@@ -36,7 +36,7 @@ Clicr.create(
     talk: {
       alias: 't',
       info: "Talk",
-      action: say,
+      action: "say",
       arguments: %w(directory),
     },
   },
@@ -138,7 +138,7 @@ Clicr.create(
       commands: {
         to_me: {
           info: "Hey that's me!",
-          action: tell,
+          action: "tell",
         },
       }
     }
@@ -168,7 +168,7 @@ commands: {
   start: {
     alias: 's',
     info: "Starts the server",
-    action: say,
+    action: "say",
   }
 }
 ```

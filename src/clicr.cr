@@ -64,10 +64,7 @@ module Clicr
       case ARGV.first
         # Generate commands match
       {% if commands.is_a? NamedTupleLiteral %}{% for subcommand, properties in commands %}
-      when "{{subcommand}}" \
-        {% if properties[:alias] %} \
-            , "{{properties[:alias].id}}" \
-        {% end %}
+      when "{{subcommand}}"{% if properties[:alias] %}, "{{properties[:alias].id}}"{% end %}
 
         # Remove the command executed
         ARGV.shift?
@@ -95,7 +92,7 @@ module Clicr
         )
       {% end %} {% end %}
         # Help
-      when "", "--{{help_option.id}}", "-{{help_option.chars.first.id}}"{% if !action %}, ARGV.last{% end %}
+      when "", "--{{help_option.id}}", "-{{help_option.chars.first.id}}"
         raise Exception.new(
         <<-HELP
         {{usage_name.id}}: {{name.id}}\
@@ -132,10 +129,7 @@ module Clicr
         , Exception.new "help")
         # Generate options match
       {% if options.is_a? NamedTupleLiteral %}{% for opt, value in options %}
-      when "--{{opt}}" \
-        {% if value[:short].is_a? CharLiteral %} \
-            , "-{{value[:short].id}}" \
-        {% end %}
+      when "--{{opt}}"{% if value[:short].is_a? CharLiteral %}, "-{{value[:short].id}}" {% end %}
           {{opt}} = true
       {% end %}{% end %}
 
@@ -167,9 +161,9 @@ module Clicr
 
     # At the end execute the command {{name}}
     {% if action %}
-      {{action.id}}({% if variables.is_a? NamedTupleLiteral %}\
-         {% for var, _x in variables %}{{var.id}}: {{var.id}},
-      {% end %}{% end %}\
+      {{action.split("()")[0].id}}({% if variables.is_a? NamedTupleLiteral %}\
+         {% for var, _x in variables %}
+         {{var.id}}: {{var.id}},{% end %}{% end %}\
       {% if options.is_a? NamedTupleLiteral %}
          {% for opt, _x in options %}{{opt.id}}: {{opt.id}},
       {% end %}{% end %}\
@@ -180,7 +174,7 @@ module Clicr
           {% else %}\
             {{arg.id}}: {{arg.id}},
         {% end %}\
-      {% end %}{% end %})
+      {% end %}{% end %}){% if action.split("()")[1] %}{{action.split("()")[1].id}}{% end %}
     {% end %}
     end
   end
