@@ -127,11 +127,6 @@ module Clicr
         '{{name.id}} --{{help_option.id}}' {{help.id}}
         HELP
         , Exception.new "help")
-        # Generate options match
-      {% if options.is_a? NamedTupleLiteral %}{% for opt, value in options %}
-      when "--{{opt}}"{% if value[:short].is_a? CharLiteral %}, "-{{value[:short].id}}" {% end %}
-          {{opt}} = true
-      {% end %}{% end %}
 
       # Generate variables match
       {% if variables.is_a? NamedTupleLiteral %}{% for var, value in variables %}
@@ -139,19 +134,31 @@ module Clicr
           {{var}} = ARGV.first[{{var.size + 1}}..-1]
       {% end %}{% end %}
 
+        # Generate options match
+      {% if options.is_a? NamedTupleLiteral %}{% for opt, value in options %}
+      when "--{{opt}}" then {{opt}} = true {% end %}{% end %}
+
+      when .starts_with? "--"  then raise Exception.new("{{name.id}}: {{unknown_option.id}}: '#{ARGV.first}'\n'{{name.id}} --{{help_option.id}}' {{help.id}}", Exception.new "unknown_option")
+      when .starts_with? '-'
+        # Parse options
+        ARGV.first.lchop.each_char do |opt|
+          {% if options.is_a? NamedTupleLiteral %}
+          case opt
+          {% for opt, value in options %}
+          {% if value[:short].is_a? CharLiteral %} when {{value[:short]}}
+            {{opt}} = true
+            next
+          {% end %}{% end %}
+          end {% end %}
+          # Invalid option
+          raise Exception.new("{{name.id}}: {{unknown_option.id}}: '-#{opt}'\n'{{name.id}} --{{help_option.id}}' {{help.id}}", Exception.new "unknown_option")
+        end
+
       {% if arguments.is_a? ArrayLiteral && arguments[-1].ends_with? "..." %}
       else
         {{arguments[-1][0..-4].id}} << ARGV.first
       {% else %}
         # Exceptions
-
-      when .starts_with? "--"  then raise Exception.new("{{name.id}}: {{unknown_option.id}}: '#{ARGV.first}'\n'{{name.id}} --{{help_option.id}}' {{help.id}}", Exception.new "unknown_option")
-      when .starts_with? '-'
-        # Invalid option
-        raise Exception.new("{{name.id}}: {{unknown_option.id}}: '#{ARGV.first}'\n'{{name.id}} --{{help_option.id}}' {{help.id}}", Exception.new "unknown_option") if ARGV.first.size == 2
-        # Multi options
-        ARGV.first.lchop.each_char { |opt| ARGV.insert 0, "-#{opt}" }
-
       else
           raise Exception.new("{{name.id}}: {{unknown_command_variable.id}}: '#{ARGV.first}'\n'{{name.id}} --{{help_option.id}}' {{help.id}}", Exception.new "unknown_command_variable")
       {% end %}

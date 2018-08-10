@@ -148,13 +148,18 @@ describe Clicr do
     end
 
     describe "options" do
-      it "set option at the end" do
+      it "use one at the end" do
         ARGV.replace ["talk", "--yes"]
         SimpleCli.new.result.should eq "yes foo"
       end
-      it "set single character option at the end" do
+      it "uses a single char one at the end" do
         ARGV.replace ["talk", "-y"]
         SimpleCli.new.result.should eq "yes foo"
+      end
+
+      it "uses concatenated single chars" do
+        ARGV.replace ["options_variables", "-ys"]
+        SimpleCli.new.result.should eq "true SUB"
       end
     end
 
