@@ -47,15 +47,15 @@ Clicr.create(
      },
    },
    options: {
-     yes: {
+     no_confirm: {
        short: 'y',
        info: "Print the name",
      }
    }
 )
 
-def say(directory, name, yes)
-  if yes
+def say(directory, name, no_confirm)
+  if no_confirm
     puts "yes, #{name} in #{directory}"
   else
     puts "no, #{name} in #{directory}"
@@ -71,7 +71,7 @@ Usage: myapp DIRECTORY [VARIABLES] [OPTIONS]
 Myapp can do everything
 
 Options:
-  -y, --yes      Print the name
+  -y, --no-confirm      Print the name
 
 Variables:
   name=foo       Your name
@@ -113,8 +113,8 @@ Clicr.create(
   help: "to show the help",
   help_option: "help",
   argument_required: "requires at least one argument",
-  unknown_option: "Unknown option",
-  unknown_command_variable: "Unknown command or variable",
+  unknown_option: "unknown option",
+  unknown_command_or_variable: "unknown command or variable",
   commands: {
     talk: {
       alias: 't',
@@ -185,15 +185,15 @@ arguments: %w(directory names...),
 
 * list arguments required after the command in the following order
 * when arguments are specified, they becomes **mandatory**
-* if an argument name ends with `...`, it isn't mandatory and have a default empty `Array(String)` value. All following arguments will be appended to it.
+* if an argument name ends with `...`, it isn't mandatory and have a default empty `Array(String)` value. All following arguments will be appended to it
 
 ### Options
 
-Example: `-y`, `--yes`
+Example: `-y`, `--no-confirm`
 
 ```crystal
 options: {
-  yes: {
+  no_confirm: {
     short: 'y',
     info: "No confirmations",
   }
@@ -224,25 +224,26 @@ variables: {
 * apply recursively to subcommands
 * can only be `String` (because arguments passed as `ARGV` are `Array(String)`) - if others type are needed, the cast must be done after the `action` method call
 * if no `default` value is set, `nil` will be the default one
+* underscores `_` will replaced by dashes `-` for the CLI option name. The underlying variable will still have underscores
 
 ## Error handling
 
-When the command issued can't be performed, an exception is raised.
-The cause can correspond to either `help`, `argument_required`, `unknown_option` or `unknown_command_variable`.
+When a command issued can't be performed, an exception is raised that can be either `Help`, `ArgumentRequired`, `UnknownCommandOrVariable` or `UnknownOption` depending of the error cause.
 
-You can catch the exception's causes like this:
+You can catch this exceptions like this:
 
 ```crystal
-begin
-  Clicr.create(
+def my_cli
+  include Clicr
+  create(
   ...
   )
+rescue ex : Help
+  puts ex; exit 0
+rescue ex : ArgumentRequired | UnknownCommandOrVariable | UnknownOption
+  abort ex
 rescue ex
-  case ex.cause.to_s
-  when "help" then puts ex; exit 0
-  when "argument_required", "unknown_option", "unknown_command_variable" then abort ex
-  else abort ex
-  end
+  abort ex
 end
 ```
 

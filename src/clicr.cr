@@ -1,4 +1,9 @@
 module Clicr
+  {% for exception in %w(Help ArgumentRequired UnknownCommandOrVariable UnknownOption) %}
+  class {{exception.id}} < Exception
+  end
+  {% end %}
+
   macro create(
     name = "app",
     info = "Application's description",
@@ -10,7 +15,7 @@ module Clicr
     help_option = "help",
     argument_required = "requires at least one argument",
     unknown_option = "unknown option",
-    unknown_command_variable = "unknown command or variable",
+    unknown_command_or_variable = "unknown command or variable",
     action = nil,
     commands = NamedTupleLiteral,
     arguments = ArrayLiteral,
@@ -40,8 +45,8 @@ module Clicr
         {{arg.id}} = ""
         case arg = ARGV.first?
         when nil
-          raise Exception.new("{{name.id}}: {{arg.id.upcase}}: {{argument_required.id}}\n'{{name.id}} --{{help_option.id}}' {{help.id}}", Exception.new "argument_required")
-        when "", "--{{help_option.id}}", "-{{help_option.chars.first.id}}"
+          raise Clicr::ArgumentRequired.new "{{name.id}}: {{arg.id.upcase}}: {{argument_required.id}}\n'{{name.id}} --{{help_option.id}}' {{help.id}}"
+        when "", "--{{help_option.gsub(/_/, "-").id}}", "-{{help_option.chars.first.id}}"
         else
           {{arg.id}} = arg
           ARGV.shift
@@ -71,35 +76,35 @@ module Clicr
 
         # Options are variables that apply recursively to subcommands
         Clicr.create(
-          "{{name.id}} {{subcommand.id}}", {{properties[:info]}}, {{usage_name}}, {{commands_name}}, {{options_name}}, {{variables_name}}, {{help}}, {{help_option}}, {{argument_required}}, {{unknown_option}}, {{unknown_command_variable}}, {{properties[:action]}}, {{properties[:commands]}}, {{properties[:arguments]}},
+          "{{name.id}} {{subcommand.id}}", {{properties[:info]}}, {{usage_name}}, {{commands_name}}, {{options_name}}, {{variables_name}}, {{help}}, {{help_option}}, {{argument_required}}, {{unknown_option}}, {{unknown_command_or_variable}}, {{properties[:action]}}, {{properties[:commands]}}, {{properties[:arguments]}},
           # ":initialized" is used to tell that the variable is declared, and not declare it again (thus override it) in further blocks
           # Merge options for recursive use in subcommands
           {% if options.is_a? NamedTupleLiteral || properties[:options].is_a? NamedTupleLiteral %}
             options: { {% if options.is_a? NamedTupleLiteral %}
-              {% for option, values in options %}{% values[:initialized] = true %} {{option.id}}: {{values.id}},{% end %}
+              {% for option, values in options %}{% values[:initialized] = true %} {{option}}: {{values}},{% end %}
             {% end %}{% if properties[:options].is_a? NamedTupleLiteral %}
-              {% for subcommand, values in properties[:options] %}{{subcommand.id}}: {{values.id}},{% end %}
+              {% for subcommand, values in properties[:options] %}{{subcommand}}: {{values}},{% end %}
             {% end %} },
           {% end %}
           # Merge variables for recursive use in subcommands
           {% if variables.is_a? NamedTupleLiteral || properties[:variables].is_a? NamedTupleLiteral %}
             variables: { {% if variables.is_a? NamedTupleLiteral %}
-              {% for var, values in variables %}{% values[:initialized] = true %} {{var.id}}: {{values.id}},{% end %}
+              {% for var, values in variables %}{% values[:initialized] = true %} {{var}}: {{values}},{% end %}
             {% end %}{% if properties[:variables].is_a? NamedTupleLiteral %}
-              {% for var, values in properties[:variables] %}{{var.id}}: {{values.id}},{% end %}
+              {% for var, values in properties[:variables] %}{{var}}: {{values}},{% end %}
             {% end %} },
           {% end %}
         )
       {% end %} {% end %}
         # Help
       when "", "--{{help_option.id}}", "-{{help_option.chars.first.id}}"
-        raise Exception.new(
+        raise Clicr::Help.new(
         <<-HELP
         {{usage_name.id}}: {{name.id}}\
-        {% if arguments.is_a? ArrayLiteral %} {{arguments.join(' ').id.upcase}}{% end %}\
-        {% if commands.is_a? NamedTupleLiteral %} {{commands_name.id.upcase}}{% end %}\
-        {% if variables.is_a? NamedTupleLiteral %} [{{variables_name.id.upcase}}]{% end %}\
-        {% if options.is_a? NamedTupleLiteral %} [{{options_name.id.upcase}}]{% end %}
+        {% if arguments.is_a? ArrayLiteral %} {{arguments.join(' ').upcase.id}}{% end %}\
+        {% if commands.is_a? NamedTupleLiteral %} {{commands_name.upcase.id}}{% end %}\
+        {% if variables.is_a? NamedTupleLiteral %} [{{variables_name.upcase.id}}]{% end %}\
+        {% if options.is_a? NamedTupleLiteral %} [{{options_name.upcase.id}}]{% end %}
 
         {{info.id}}
         {% if options.is_a? NamedTupleLiteral %}
@@ -108,12 +113,12 @@ module Clicr
             -{{value[:short].id}}, \
           {% else %}    \
           {% end %}\
-          --{{opt}} \t {{value[:info].id}}\
+          --{{opt.gsub(/_/, "-")}} \t {{value[:info].id}}\
         {% end %}
         {% end %}\
         {% if variables.is_a? NamedTupleLiteral %}
         {{variables_name.id}}:{% for var, value in variables %}
-          {{var}}{% if value[:default] %}={{value[:default].id}}{% else %}\t{% end %} \t {{value[:info].id}}\
+          {{var}}{% if value[:default] %}=#{{{value[:default]}}}{% else %}\t{% end %} \t {{value[:info].id}}\
         {% end %}
         {% end %}\
         {% if commands.is_a? NamedTupleLiteral %}
@@ -126,8 +131,7 @@ module Clicr
         {% end %}
         '{{name.id}} --{{help_option.id}}' {{help.id}}
         HELP
-        , Exception.new "help")
-
+        )
       # Generate variables match
       {% if variables.is_a? NamedTupleLiteral %}{% for var, value in variables %}
       when .starts_with? "{{var}}="
@@ -136,9 +140,9 @@ module Clicr
 
         # Generate options match
       {% if options.is_a? NamedTupleLiteral %}{% for opt, value in options %}
-      when "--{{opt}}" then {{opt}} = true {% end %}{% end %}
+      when "--{{opt.gsub(/_/, "-").id}}" then {{opt}} = true {% end %}{% end %}
 
-      when .starts_with? "--"  then raise Exception.new("{{name.id}}: {{unknown_option.id}}: '#{ARGV.first}'\n'{{name.id}} --{{help_option.id}}' {{help.id}}", Exception.new "unknown_option")
+      when .starts_with? "--"  then raise Clicr::UnknownOption.new "{{name.id}}: {{unknown_option.id}}: '#{ARGV.first}'\n'{{name.id}} --{{help_option.id}}' {{help.id}}"
       when .starts_with? '-'
         # Parse options
         ARGV.first.lchop.each_char do |opt|
@@ -151,7 +155,7 @@ module Clicr
           {% end %}{% end %}
           end {% end %}
           # Invalid option
-          raise Exception.new("{{name.id}}: {{unknown_option.id}}: '-#{opt}'\n'{{name.id}} --{{help_option.id}}' {{help.id}}", Exception.new "unknown_option")
+          raise Clicr::UnknownOption.new "{{name.id}}: {{unknown_option.id}}: '-#{opt}'\n'{{name.id}} --{{help_option.id}}' {{help.id}}"
         end
 
       {% if arguments.is_a? ArrayLiteral && arguments[-1].ends_with? "..." %}
@@ -160,7 +164,7 @@ module Clicr
       {% else %}
         # Exceptions
       else
-          raise Exception.new("{{name.id}}: {{unknown_command_variable.id}}: '#{ARGV.first}'\n'{{name.id}} --{{help_option.id}}' {{help.id}}", Exception.new "unknown_command_variable")
+          raise Clicr::UnknownCommandOrVariable.new "{{name.id}}: {{unknown_command_or_variable.id}}: '#{ARGV.first}'\n'{{name.id}} --{{help_option.id}}' {{help.id}}"
       {% end %}
       end
       ARGV.shift?

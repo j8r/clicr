@@ -36,7 +36,7 @@ struct SimpleCli
             },
           },
           options: {
-            subopt: {
+            sub_opt: {
               short: 's',
               info:  "sub options",
             },
@@ -91,8 +91,8 @@ struct SimpleCli
     @result = "#{numbers.join(' ')} #{var}"
   end
 
-  def options_variables(name, yes, subopt, subvar)
-    @result = "#{subopt} #{subvar}"
+  def options_variables(name, yes, sub_opt, subvar)
+    @result = "#{sub_opt} #{subvar}"
   end
 end
 
@@ -169,7 +169,7 @@ describe Clicr do
         SimpleCli.new.result.should eq "false SUB"
       end
       it "by setting values" do
-        ARGV.replace ["options_variables", "-s", "subvar=VALUE"]
+        ARGV.replace ["options_variables", "--sub-opt", "subvar=VALUE"]
         SimpleCli.new.result.should eq "true VALUE"
       end
     end
