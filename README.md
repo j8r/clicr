@@ -110,11 +110,12 @@ Clicr.create(
   commands_name: "Commands",
   options_name: "Options",
   variables_name: "Variables",
-  help: "to show the help",
+  help: "to show the help.",
   help_option: "help",
-  argument_required: "requires at least one argument",
+  argument_required: "argument required",
+  unknown_command: "unknown command",
   unknown_option: "unknown option",
-  unknown_command_or_variable: "unknown command or variable",
+  unknown_variable: "unknown variable",
   commands: {
     talk: {
       alias: 't',
@@ -228,7 +229,7 @@ variables: {
 
 ## Error handling
 
-When a command issued can't be performed, an exception is raised that can be either `Help`, `ArgumentRequired`, `UnknownCommandOrVariable` or `UnknownOption` depending of the error cause.
+When a command issued can't be performed, an exception is raised that can be either `Help`, `ArgumentRequired`, `UnknownCommand`, `UnknownOption` or `UnknownVariable` depending of the error cause.
 
 You can catch this exceptions like this:
 
@@ -240,7 +241,7 @@ def my_cli
   )
 rescue ex : Help
   puts ex; exit 0
-rescue ex : ArgumentRequired | UnknownCommandOrVariable | UnknownOption
+rescue ex : ArgumentRequired | UnknownCommand | UnknownOption | UnknownVariable
   abort ex
 rescue ex
   abort ex
