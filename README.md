@@ -8,7 +8,7 @@ A simple Command line interface builder which aims to be easy to use.
 
 ## Installation
 
-Add this block to your application's `shard.yml`:
+Add the dependency to your `shard.yml`:
 
 ```yaml
 dependencies:
@@ -175,6 +175,7 @@ commands: {
 ```
 
 * `alias` creates an alias of the command. The alias mustn't already exist
+* in `action`, parentheses can be added to determine the arguments placement, like `File.new().file`
 
 ### Arguments
 

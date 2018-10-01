@@ -80,7 +80,7 @@ struct SimpleCli
   end
 
   def test(name, yes)
-    @result = (yes ? "yes " : "no ") + name
+    @result = "#{yes} #{name}"
   end
 
   def run(name, yes, application, folder)
@@ -88,7 +88,7 @@ struct SimpleCli
   end
 
   def array(name, yes, app, numbers, var)
-    @result = "#{numbers.join(' ')} #{var}"
+    @result = "#{yes} #{app} #{numbers.join(' ')} #{var}"
   end
 
   def options_variables(name, yes, sub_opt, subvar)
@@ -101,11 +101,11 @@ describe Clicr do
     describe "commands" do
       it "run the command" do
         ARGV.replace ["talk"]
-        SimpleCli.new.result.should eq "no foo"
+        SimpleCli.new.result.should eq "false foo"
       end
       it "run the single character command" do
         ARGV.replace ["t"]
-        SimpleCli.new.result.should eq "no foo"
+        SimpleCli.new.result.should eq "false foo"
       end
     end
 
@@ -115,46 +115,46 @@ describe Clicr do
         SimpleCli.new.result.should eq "myapp runned in /tmp"
       end
 
-      it "uses multiple" do
-        ARGV.replace ["test_array", "app", "2", "3"]
-        SimpleCli.new.result.should eq "2 3 "
+      it "uses multiple with option" do
+        ARGV.replace ["test_array", "myapp", "-y", "2", "3"]
+        SimpleCli.new.result.should eq "true myapp 2 3 "
       end
 
       it "sets a variable at the end" do
-        ARGV.replace ["test_array", "app", "2", "3", "var=T"]
-        SimpleCli.new.result.should eq "2 3 T"
+        ARGV.replace ["test_array", "myapp", "2", "3", "var=T"]
+        SimpleCli.new.result.should eq "false myapp 2 3 T"
       end
 
       it "sets a variable at the begining" do
-        ARGV.replace ["test_array", "app", "var=T", "2", "3"]
-        SimpleCli.new.result.should eq "2 3 T"
+        ARGV.replace ["test_array", "myapp", "var=T", "2", "3"]
+        SimpleCli.new.result.should eq "false myapp 2 3 T"
       end
 
       it "sets a variable in the midde" do
-        ARGV.replace ["test_array", "app", "2", "var=T", "3"]
-        SimpleCli.new.result.should eq "2 3 T"
+        ARGV.replace ["test_array", "myapp", "2", "var=T", "3"]
+        SimpleCli.new.result.should eq "false myapp 2 3 T"
       end
     end
 
     describe "variables" do
       it "set value at the end" do
         ARGV.replace ["talk", "name=bar"]
-        SimpleCli.new.result.should eq "no bar"
+        SimpleCli.new.result.should eq "false bar"
       end
       it "set value at the beginning" do
         ARGV.replace ["name=bar", "talk"]
-        SimpleCli.new.result.should eq "no bar"
+        SimpleCli.new.result.should eq "false bar"
       end
     end
 
     describe "options" do
       it "use one at the end" do
         ARGV.replace ["talk", "--yes"]
-        SimpleCli.new.result.should eq "yes foo"
+        SimpleCli.new.result.should eq "true foo"
       end
       it "uses a single char one at the end" do
         ARGV.replace ["talk", "-y"]
-        SimpleCli.new.result.should eq "yes foo"
+        SimpleCli.new.result.should eq "true foo"
       end
 
       it "uses concatenated single chars" do
@@ -176,7 +176,7 @@ describe Clicr do
 
     it "sets all parameters" do
       ARGV.replace ["talk", "-y", "name=bar"]
-      SimpleCli.new.result.should eq "yes bar"
+      SimpleCli.new.result.should eq "true bar"
     end
 
     it "uses a variable assignation with a class and a method" do

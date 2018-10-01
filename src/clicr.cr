@@ -96,7 +96,7 @@ module Clicr
             {% end %} },
           {% end %}
         )
-      {% end %} {% end %}
+      {% end %}{% end %}
         # Help
       when "", "--{{help_option.id}}", "-{{help_option.chars.first.id}}"
         raise Clicr::Help.new(
