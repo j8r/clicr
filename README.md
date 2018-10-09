@@ -66,20 +66,20 @@ end
 Example of commands:
 ```
 $ myapp --help
-Usage: myapp DIRECTORY [VARIABLES] [OPTIONS]
+Usage: myapp COMMANDS [VARIABLES] [OPTIONS]
 
 Myapp can do everything
 
-Options:
-  -y, --no-confirm      Print the name
-
-Variables:
-  name=foo       Your name
-
-Commands:
+COMMANDS
   t, talk        Talk
 
-'myapp --help' to show the help
+VARIABLES
+  name=foo       Your name
+
+OPTIONS
+  -y, --no-confirm       Print the name
+
+'myapp --help' to show the help.
 ```
 ```
 $ myapp talk /tmp name=bar
@@ -106,10 +106,10 @@ ARGV.replace %w(talk -j forename=Jack to_me)
 Clicr.create(
   name: "myapp",
   info: "Application default description",
-  usage_name: "Usage",
-  commands_name: "Commands",
-  options_name: "Options",
-  variables_name: "Variables",
+  usage_name: "Usage: ",
+  commands_name: "COMMANDS",
+  options_name: "OPTIONS",
+  variables_name: "VARIABLES",
   help: "to show the help.",
   help_option: "help",
   argument_required: "argument required",

@@ -7,10 +7,10 @@ module Clicr
   macro create(
     name = "app",
     info = "Application's description",
-    usage_name = "Usage",
-    commands_name = "Commands",
-    options_name = "Options",
-    variables_name = "Variables",
+    usage_name = "Usage: ",
+    commands_name = "COMMANDS",
+    options_name = "OPTIONS",
+    variables_name = "VARIABLES",
     help = "to show the help.",
     help_option = "help",
     argument_required = "argument required",
@@ -101,33 +101,33 @@ module Clicr
       when "", "--{{help_option.id}}", "-{{help_option.chars.first.id}}"
         raise Clicr::Help.new(
         <<-HELP
-        {{usage_name.id}}: {{name.id}}\
+        {{usage_name.id}}{{name.id}}\
         {% if arguments.is_a? ArrayLiteral %} {{arguments.join(' ').upcase.id}}{% end %}\
         {% if commands.is_a? NamedTupleLiteral %} {{commands_name.upcase.id}}{% end %}\
         {% if variables.is_a? NamedTupleLiteral %} [{{variables_name.upcase.id}}]{% end %}\
         {% if options.is_a? NamedTupleLiteral %} [{{options_name.upcase.id}}]{% end %}
 
         {{info.id}}
+        {% if commands.is_a? NamedTupleLiteral %}
+        {{commands_name.id}}{% for command, value in commands %}
+          {% if value[:alias] %}\
+            {{value[:alias].id}}, \
+        {% else %}\
+        {% end %}{{command}} \t {{value[:info].id}}\
+        {% end %}
+        {% end %}\
+        {% if variables.is_a? NamedTupleLiteral %}
+        {{variables_name.id}}{% for var, value in variables %}
+          {{var}}{% if value[:default] %}=#{{{value[:default]}}}{% else %}\t{% end %} \t {{value[:info].id}}\
+        {% end %}
+        {% end %}\
         {% if options.is_a? NamedTupleLiteral %}
-        {{options_name.id}}:{% for opt, value in options %}
+        {{options_name.id}}{% for opt, value in options %}
           {% if value[:short].is_a? CharLiteral %}\
             -{{value[:short].id}}, \
           {% else %}    \
           {% end %}\
           --{{opt.gsub(/_/, "-")}} \t {{value[:info].id}}\
-        {% end %}
-        {% end %}\
-        {% if variables.is_a? NamedTupleLiteral %}
-        {{variables_name.id}}:{% for var, value in variables %}
-          {{var}}{% if value[:default] %}=#{{{value[:default]}}}{% else %}\t{% end %} \t {{value[:info].id}}\
-        {% end %}
-        {% end %}\
-        {% if commands.is_a? NamedTupleLiteral %}
-        {{commands_name.id}}:{% for command, value in commands %}
-          {% if value[:alias] %}\
-            {{value[:alias].id}}, \
-        {% else %}\
-        {% end %}{{command}} \t {{value[:info].id}}\
         {% end %}
         {% end %}
         '{{name.id}} --{{help_option.id}}' {{help.id}}

@@ -1,0 +1,34 @@
+require "./src/clicr"
+
+Clicr.create(
+  name: "myapp",
+  info: "Myapp can do everything",
+  commands: {
+    talk: {
+      alias: 't',
+      info: "Talk",
+      action: "say",
+      arguments: %w(directory),
+    },
+  },
+   variables: {
+     name: {
+       info: "Your name",
+       default: "foo",
+     },
+   },
+   options: {
+     no_confirm: {
+       short: 'y',
+       info: "Print the name",
+     }
+   }
+)
+
+def say(directory, name, no_confirm)
+  if no_confirm
+    puts "yes, #{name} in #{directory}"
+  else
+    puts "no, #{name} in #{directory}"
+  end
+end
