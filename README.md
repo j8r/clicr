@@ -71,13 +71,13 @@ Usage: myapp COMMANDS [VARIABLES] [OPTIONS]
 Myapp can do everything
 
 COMMANDS
-  t, talk        Talk
+  t, talk   Talk
 
 VARIABLES
-  name=foo       Your name
+  name=foo   Your name
 
 OPTIONS
-  -y, --no-confirm       Print the name
+  -y, --no-confirm   Print the name
 
 'myapp --help' to show the help.
 ```
@@ -186,8 +186,8 @@ arguments: %w(directory names...),
 ```
 
 * list arguments required after the command in the following order
-* when arguments are specified, they becomes **mandatory**
-* if an argument name ends with `...`, it isn't mandatory and have a default empty `Array(String)` value. All following arguments will be appended to it
+* when arguments are specified, unless when ending with `...`, they becomes **mandatory**
+* if the last argument ends with `...`, it isn't mandatory and have a default empty `Array(String)` value. All following arguments will be appended to it
 
 ### Options
 

@@ -103,7 +103,7 @@ describe Clicr do
         ARGV.replace ["talk"]
         SimpleCli.new.result.should eq "false foo"
       end
-      it "run the single character command" do
+      it "run single character command" do
         ARGV.replace ["t"]
         SimpleCli.new.result.should eq "false foo"
       end
@@ -182,6 +182,57 @@ describe Clicr do
     it "uses a variable assignation with a class and a method" do
       ARGV.replace ["klass", "var=value"]
       SimpleCli.new.result.should eq "value"
+    end
+
+    describe "help" do
+      it "print main help" do
+        ex = expect_raises Clicr::Help do
+          ARGV.replace ["-h"]
+          SimpleCli.new.result
+        end
+        ex.message.should eq <<-HELP
+        Usage: app COMMANDS [VARIABLES] [OPTIONS]
+
+        Application's description
+
+        COMMANDS
+          t, talk             Talk
+          run                 Tests vars
+          test_array          Tests arrays
+          options_variables   Test sub options/variables
+          klass               klass
+
+        VARIABLES
+          name=foo   Your name
+
+        OPTIONS
+          -y, --yes   Print the name
+
+        'app --help' to show the help.
+        HELP
+      end
+
+      it "prints for sub command" do
+        ex = expect_raises Clicr::Help do
+          ARGV.replace ["options_variables", "-h"]
+          SimpleCli.new.result
+        end
+        ex.message.should eq <<-HELP
+        Usage: app options_variables [VARIABLES] [OPTIONS]
+
+        Test sub options/variables
+
+        VARIABLES
+          name=foo     Your name
+          subvar=SUB   sub variable
+
+        OPTIONS
+          -y, --yes       Print the name
+          -s, --sub-opt   sub options
+
+        'app options_variables --help' to show the help.
+        HELP
+      end
     end
   end
 end

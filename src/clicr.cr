@@ -28,28 +28,28 @@ module Clicr
   1.times do
     # Initialize default values
   {% if variables.is_a? NamedTupleLiteral %}{% for var, properties in variables %}\
-    {% if !properties[:initialized] %}
-    {{var}} = {{properties[:default]}}
+    {% if !properties[:initialized] %}\
+    __{{var.id}} = {{properties[:default]}}
     {% end %}{% end %}{% end %}\
   {% if options.is_a? NamedTupleLiteral %}{% for var, properties in options %}\
-    {{var}} = false
+    __{{var.id}} = false
   {% end %}{% end %}
 
   # Parse arguments
   {% if arguments.is_a? ArrayLiteral %}
     {% for arg in arguments %}\
       # Array arguments
-      {% if arg.ends_with? "..." %}
-        {{arg[0..-4].id}} = Array(String).new
+      {% if arg.ends_with? "..." %}\
+        __{{arg[0..-4].id}} = Array(String).new
       # Simple arguments
-      {% else %}
-        {{arg.id}} = ""
+      {% else %}\
+        __{{arg.id}} = ""
         case arg = ARGV.first?
         when nil
           raise Clicr::ArgumentRequired.new "'{{name.id}}': {{argument_required.id}}: {{arg.upcase.id}}\n'{{name.id}} --{{help_option.id}}' {{help.id}}"
         when "", "--{{help_option.gsub(/_/, "-").id}}", "-{{help_option.chars.first.id}}"
         else
-          {{arg.id}} = arg
+          __{{arg.id}} = arg
           ARGV.shift
         end
       {% end %}
@@ -100,48 +100,60 @@ module Clicr
         # Help
       when "", "--{{help_option.id}}", "-{{help_option.chars.first.id}}"
         raise Clicr::Help.new(
-        <<-HELP
-        {{usage_name.id}}{{name.id}}\
-        {% if arguments.is_a? ArrayLiteral %} {{arguments.join(' ').upcase.id}}{% end %}\
-        {% if commands.is_a? NamedTupleLiteral %} {{commands_name.upcase.id}}{% end %}\
-        {% if variables.is_a? NamedTupleLiteral %} [{{variables_name.upcase.id}}]{% end %}\
-        {% if options.is_a? NamedTupleLiteral %} [{{options_name.upcase.id}}]{% end %}
+        String.build do |str|
+          str << <<-%HEADER
+          {{usage_name.id}}{{name.id}}\
+          {% if arguments.is_a? ArrayLiteral %} {{arguments.join(' ').upcase.id}}{% end %}\
+          {% if commands.is_a? NamedTupleLiteral %} {{commands_name.upcase.id}}{% end %}\
+          {% if variables.is_a? NamedTupleLiteral %} [{{variables_name.upcase.id}}]{% end %}\
+          {% if options.is_a? NamedTupleLiteral %} [{{options_name.upcase.id}}]{% end %}
 
-        {{info.id}}
-        {% if commands.is_a? NamedTupleLiteral %}
-        {{commands_name.id}}{% for command, value in commands %}
-          {% if value[:alias] %}\
+          {{info.id}}
+          %HEADER
+
+          {% if commands.is_a? NamedTupleLiteral %}
+          str << "\n\n{{commands_name.id}}"
+          str << Clicr.align(str, {
+          {% for command, value in commands %}
+            { "{% if value[:alias] %}\
             {{value[:alias].id}}, \
-        {% else %}\
-        {% end %}{{command}} \t {{value[:info].id}}\
-        {% end %}
-        {% end %}\
-        {% if variables.is_a? NamedTupleLiteral %}
-        {{variables_name.id}}{% for var, value in variables %}
-          {{var}}{% if value[:default] %}=#{{{value[:default]}}}{% else %}\t{% end %} \t {{value[:info].id}}\
-        {% end %}
-        {% end %}\
-        {% if options.is_a? NamedTupleLiteral %}
-        {{options_name.id}}{% for opt, value in options %}
-          {% if value[:short].is_a? CharLiteral %}\
+            {% end %}{{command.id}}", {{value[:info]}} },
+          {% end %} })
+          {% end %}
+
+          {% if variables.is_a? NamedTupleLiteral %}
+          str << "\n\n{{variables_name.id}}"
+          str << Clicr.align(str, {
+          {% for var, value in variables %}\
+            { %({{var.id}}{% if value[:default] %}=#{{{value[:default]}}}\
+            {% end %}), {{value[:info]}} },
+          {% end %} })
+          {% end %}
+
+          {% if options.is_a? NamedTupleLiteral %}
+          str << "\n\n{{options_name.id}}"
+          str << Clicr.align(str, {
+          {% for opt, value in options %}
+            { "{% if value[:short].is_a? CharLiteral %}\
             -{{value[:short].id}}, \
-          {% else %}    \
-          {% end %}\
-          --{{opt.gsub(/_/, "-")}} \t {{value[:info].id}}\
-        {% end %}
-        {% end %}
-        '{{name.id}} --{{help_option.id}}' {{help.id}}
-        HELP
+            {% else %}    \
+            {% end %}\
+            --{{opt.gsub(/_/, "-").id}}", {{value[:info]}} },
+          {% end %} })
+          {% end %}
+
+          str << "\n\n'{{name.id}} --{{help_option.id}}' {{help.id}}"
+        end
         )
       # Generate variables match
       {% if variables.is_a? NamedTupleLiteral %}{% for var, value in variables %}
       when .starts_with? "{{var}}="
-          {{var}} = ARGV.first[{{var.size + 1}}..-1]
+          __{{var.id}} = ARGV.first[{{var.size + 1}}..-1]
       {% end %}{% end %}
 
         # Generate options match
       {% if options.is_a? NamedTupleLiteral %}{% for opt, value in options %}
-      when "--{{opt.gsub(/_/, "-").id}}" then {{opt}} = true {% end %}{% end %}
+      when "--{{opt.gsub(/_/, "-").id}}" then __{{opt.id}} = true {% end %}{% end %}
 
       when .starts_with? "--"  then raise Clicr::UnknownOption.new "{{name.id}}: {{unknown_option.id}}: '#{ARGV.first}'\n'{{name.id}} --{{help_option.id}}' {{help.id}}"
       when .starts_with? '-'
@@ -151,7 +163,7 @@ module Clicr
           case opt
           {% for opt, value in options %}
           {% if value[:short].is_a? CharLiteral %} when {{value[:short]}}
-            {{opt}} = true
+            __{{opt.id}} = true
             next
           {% end %}{% end %}
           end
@@ -163,7 +175,7 @@ module Clicr
       # Custom handling of all the next arguments
       {% if arguments.is_a? ArrayLiteral && arguments[-1].ends_with? "..." %}
       else
-        {{arguments[-1][0..-4].id}} << ARGV.first
+        __{{arguments[-1][0..-4].id}} << ARGV.first
       {% else %}
         # Exceptions
       when .includes? '='
@@ -179,19 +191,30 @@ module Clicr
     {% if action %}
       {{action.split("()")[0].id}}({% if variables.is_a? NamedTupleLiteral %}\
          {% for var, _x in variables %}
-         {{var.id}}: {{var.id}},{% end %}{% end %}\
+         {{var.id}}: __{{var.id}},{% end %}{% end %}\
       {% if options.is_a? NamedTupleLiteral %}
-         {% for opt, _x in options %}{{opt.id}}: {{opt.id}},
+         {% for opt, _x in options %}{{opt.id}}: __{{opt.id}},
       {% end %}{% end %}\
       {% if arguments.is_a? ArrayLiteral %}\
         {% for arg in arguments %}\
           {% if arg.ends_with? "..." %}\
-            {{arg[0..-4].id}}: {{arg[0..-4].id}},
+            {{arg[0..-4].id}}: __{{arg[0..-4].id}},
           {% else %}\
-            {{arg.id}}: {{arg.id}},
+            {{arg.id}}: __{{arg.id}},
         {% end %}\
       {% end %}{% end %}){% if action.split("()")[1] %}{{action.split("()")[1].id}}{% end %}
     {% end %}
+    end
+  end
+
+  def self.align(io, help_block : Tuple)
+    max_size = help_block.max_of { |arg, _| arg.size }
+    help_block.each do |arg, help|
+      io << "\n  " << arg
+      (max_size - arg.size).times do
+        io << ' '
+      end
+      io << "   " << help
     end
   end
 end
