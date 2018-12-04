@@ -1,4 +1,5 @@
-require "./spec_helper"
+require "spec"
+require "../src/clicr.cr"
 
 struct SimpleCli
   getter result : String = ""
@@ -103,6 +104,7 @@ describe Clicr do
         ARGV.replace ["talk"]
         SimpleCli.new.result.should eq "false foo"
       end
+
       it "run single character command" do
         ARGV.replace ["t"]
         SimpleCli.new.result.should eq "false foo"
@@ -141,9 +143,17 @@ describe Clicr do
         ARGV.replace ["talk", "name=bar"]
         SimpleCli.new.result.should eq "false bar"
       end
+
       it "set value at the beginning" do
         ARGV.replace ["name=bar", "talk"]
         SimpleCli.new.result.should eq "false bar"
+      end
+
+      it "set one with no commands" do
+        ARGV.replace ["name=bar"]
+        expect_raises Clicr::Help do
+          SimpleCli.new.result
+        end
       end
     end
 
@@ -152,6 +162,7 @@ describe Clicr do
         ARGV.replace ["talk", "--yes"]
         SimpleCli.new.result.should eq "true foo"
       end
+
       it "uses a single char one at the end" do
         ARGV.replace ["talk", "-y"]
         SimpleCli.new.result.should eq "true foo"
@@ -161,6 +172,13 @@ describe Clicr do
         ARGV.replace ["options_variables", "-ys"]
         SimpleCli.new.result.should eq "true SUB"
       end
+
+      it "set one with no command" do
+        ARGV.replace ["-y"]
+        expect_raises Clicr::Help do
+          SimpleCli.new.result
+        end
+      end
     end
 
     describe "options/variables of sub command" do
@@ -168,6 +186,7 @@ describe Clicr do
         ARGV.replace ["options_variables"]
         SimpleCli.new.result.should eq "false SUB"
       end
+
       it "by setting values" do
         ARGV.replace ["options_variables", "--sub-opt", "subvar=VALUE"]
         SimpleCli.new.result.should eq "true VALUE"
@@ -186,16 +205,12 @@ describe Clicr do
 
     describe "help" do
       it "print main help" do
-        ex = expect_raises Clicr::Help do
-          ARGV.replace ["-h"]
-          SimpleCli.new.result
-        end
-        ex.message.should eq <<-HELP
-        Usage: app COMMANDS [VARIABLES] [OPTIONS]
+        help = <<-HELP
+        Usage: app COMMAND [VARIABLES] [OPTIONS]
 
         Application's description
 
-        COMMANDS
+        COMMAND
           t, talk             Talk
           run                 Tests vars
           test_array          Tests arrays
@@ -210,6 +225,21 @@ describe Clicr do
 
         'app --help' to show the help.
         HELP
+        it "with -h" do
+          ex = expect_raises Clicr::Help do
+            ARGV.replace ["-h"]
+            SimpleCli.new.result
+          end
+          ex.message.should eq help
+        end
+
+        it "with no arguments" do
+          ex = expect_raises Clicr::Help do
+            ARGV.replace Array(String).new
+            SimpleCli.new.result
+          end
+          ex.message.should eq help
+        end
       end
 
       it "prints for sub command" do

@@ -66,11 +66,11 @@ end
 Example of commands:
 ```
 $ myapp --help
-Usage: myapp COMMANDS [VARIABLES] [OPTIONS]
+Usage: myapp COMMAND [VARIABLES] [OPTIONS]
 
 Myapp can do everything
 
-COMMANDS
+COMMAND
   t, talk   Talk
 
 VARIABLES
@@ -107,7 +107,7 @@ Clicr.create(
   name: "myapp",
   info: "Application default description",
   usage_name: "Usage: ",
-  commands_name: "COMMANDS",
+  command_name: "COMMAND",
   options_name: "OPTIONS",
   variables_name: "VARIABLES",
   help: "to show the help.",
