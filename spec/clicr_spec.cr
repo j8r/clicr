@@ -204,7 +204,7 @@ describe Clicr do
     end
 
     describe "help" do
-      it "print main help" do
+      describe "print main help" do
         help = <<-HELP
         Usage: app COMMAND [VARIABLES] [OPTIONS]
 

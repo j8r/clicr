@@ -29,30 +29,32 @@ All the configurations are done in a `NamedTuple` like follow:
 ```crystal
 require "clicr"
 
-Clicr.create(
-  name: "myapp",
-  info: "Myapp can do everything",
-  commands: {
-    talk: {
-      alias: 't',
-      info: "Talk",
-      action: "say",
-      arguments: %w(directory),
+def run_cli
+  Clicr.create(
+    name: "myapp",
+    info: "Myapp can do everything",
+    commands: {
+      talk: {
+        alias: 't',
+        info: "Talk",
+        action: "say",
+        arguments: %w(directory),
+      },
     },
-  },
-   variables: {
-     name: {
-       info: "Your name",
-       default: "foo",
+     variables: {
+       name: {
+         info: "Your name",
+         default: "foo",
+       },
      },
-   },
-   options: {
-     no_confirm: {
-       short: 'y',
-       info: "Print the name",
+     options: {
+       no_confirm: {
+         short: 'y',
+         info: "Print the name",
+       }
      }
-   }
-)
+  )
+end
 
 def say(directory, name, no_confirm)
   if no_confirm
@@ -61,6 +63,8 @@ def say(directory, name, no_confirm)
     puts "no, #{name} in #{directory}"
   end
 end
+
+run_cli
 ```
 
 Example of commands:
@@ -103,49 +107,50 @@ Other parameters can be customized like names of sections, the `help_option` and
 ```crystal
 ARGV.replace %w(talk -j forename=Jack to_me)
 
-Clicr.create(
-  name: "myapp",
-  info: "Application default description",
-  usage_name: "Usage: ",
-  command_name: "COMMAND",
-  options_name: "OPTIONS",
-  variables_name: "VARIABLES",
-  help: "to show the help.",
-  help_option: "help",
-  argument_required: "argument required",
-  unknown_command: "unknown command",
-  unknown_option: "unknown option",
-  unknown_variable: "unknown variable",
-  commands: {
-    talk: {
-      alias: 't',
-      info: "Talk",
-      options: {
-        joking: {
-          short: 'j',
-          info: "Joke tone"
+def run_cli
+  Clicr.create(
+    name: "myapp",
+    info: "Application default description",
+    usage_name: "Usage: ",
+    command_name: "COMMAND",
+    options_name: "OPTIONS",
+    variables_name: "VARIABLES",
+    help: "to show the help.",
+    help_option: "help",
+    argument_required: "argument required",
+    unknown_command: "unknown command",
+    unknown_option: "unknown option",
+    unknown_variable: "unknown variable",
+    commands: {
+      talk: {
+        alias: 't',
+        info: "Talk",
+        options: {
+          joking: {
+            short: 'j',
+            info: "Joke tone"
+          }
+        },
+        variables: {
+          forename: {
+            default: "Foo",
+            info: "Specify your forename",
+          },
+          surname: {
+            default: "Bar",
+            info: "Specify your surname",
+          },
+        },
+        commands: {
+          to_me: {
+            info: "Hey that's me!",
+            action: "tell",
+          },
         }
-      },
-      variables: {
-        forename: {
-          default: "Foo",
-          info: "Specify your forename",
-        },
-        surname: {
-          default: "Bar",
-          info: "Specify your surname",
-        },
-      },
-      commands: {
-        to_me: {
-          info: "Hey that's me!",
-          action: "tell",
-        },
       }
     }
-  }
-)
-
+  )
+end
 
 def tell(forename, surname, joking)
   if joking
@@ -154,9 +159,57 @@ def tell(forename, surname, joking)
     puts "Hello #{forename} #{surname}."
   end
 end
+
+run_cli
 ```
 
 Result: `Yo my best Jack Bar friend!`
+
+### CLI Composition
+
+It's also possible to merge several CLIs together
+
+```crystal
+macro cli(**new_commands)
+
+def run
+  Clicr.create(
+    name: "myapp",
+    info: "Test app",
+    commands: {
+      puts: {
+        alias: 'p',
+        info: "It puts",
+        action: "puts",
+      },
+      {{**new_commands}}
+    }
+  )
+end
+run
+
+end
+
+cli(
+  pp: {
+    info: "It pp",
+    action: "pp"
+  }
+)
+```
+
+Help output:
+```
+Usage: myapp COMMAND
+
+Test app
+
+COMMAND
+  p, puts   It puts
+  pp        It pp
+
+'myapp --help' to show the help.
+```
 
 ## Reference
 
