@@ -222,6 +222,10 @@ commands: {
   start: {
     alias: 's',
     info: "Starts the server",
+    description: <<-E.to_s,
+    This is a full multi-line description
+    explaining the command
+    E,
     action: "say",
   }
 }
@@ -229,6 +233,8 @@ commands: {
 
 * `alias` creates an alias of the command. The alias mustn't already exist
 * in `action`, parentheses can be added to determine the arguments placement, like `File.new().file`
+* `info` is supposed to be short, one-line description
+* `description` can be a multi-line description of the command. If not set, `info` will be used. 
 
 ### Arguments
 

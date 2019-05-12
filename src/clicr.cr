@@ -6,7 +6,8 @@ module Clicr
 
   macro create(
     name = "app",
-    info = "Application's description",
+    info = nil,
+    description = nil,
     usage_name = "Usage: ",
     command_name = "COMMAND",
     options_name = "OPTIONS",
@@ -33,9 +34,10 @@ module Clicr
           {% if commands.is_a? NamedTupleLiteral %} {{command_name.upcase.id}}{% end %}\
           {% if variables.is_a? NamedTupleLiteral %} [{{variables_name.upcase.id}}]{% end %}\
           {% if options.is_a? NamedTupleLiteral %} [{{options_name.upcase.id}}]{% end %}
-
-          {{info.id}}
           %HEADER
+          {% if description || info %}
+          str << "\n\n" << {{ description || info }}
+          {% end %}
 
           {% if commands.is_a? NamedTupleLiteral %}
           str << "\n\n{{command_name.id}}"
@@ -117,7 +119,7 @@ module Clicr
 
         # Options are variables that apply recursively to subcommands
         Clicr.create(
-          "{{name.id}} {{subcommand.id}}", {{properties[:info]}}, {{usage_name}}, {{command_name}}, {{options_name}}, {{variables_name}}, {{help}}, {{help_option}}, {{argument_required}}, {{unknown_command}}, {{unknown_option}}, {{unknown_variable}}, {{properties[:action]}}, {{properties[:commands]}}, {{properties[:arguments]}},
+          "{{name.id}} {{subcommand.id}}", {{properties[:info]}}, {{properties[:description]}}, {{usage_name}}, {{command_name}}, {{options_name}}, {{variables_name}}, {{help}}, {{help_option}}, {{argument_required}}, {{unknown_command}}, {{unknown_option}}, {{unknown_variable}}, {{properties[:action]}}, {{properties[:commands]}}, {{properties[:arguments]}},
           # ":initialized" is used to tell that the variable is declared, and not declare it again (thus override it) in further blocks
           # Merge options for recursive use in subcommands
           {% if options.is_a? NamedTupleLiteral || properties[:options].is_a? NamedTupleLiteral %}

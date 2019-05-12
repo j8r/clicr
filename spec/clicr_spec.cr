@@ -28,7 +28,11 @@ struct SimpleCli
           },
         },
         options_variables: {
-          info:      "Test sub options/variables",
+          info:        "Test sub options/variables",
+          description: <<-E.to_s,
+          Multi-line
+          description
+          E
           action:    "options_variables",
           variables: {
             subvar: {
@@ -208,8 +212,6 @@ describe Clicr do
         help = <<-HELP
         Usage: app COMMAND [VARIABLES] [OPTIONS]
 
-        Application's description
-
         COMMAND
           t, talk             Talk
           run                 Tests vars
@@ -250,7 +252,8 @@ describe Clicr do
         ex.message.should eq <<-HELP
         Usage: app options_variables [VARIABLES] [OPTIONS]
 
-        Test sub options/variables
+        Multi-line
+        description
 
         VARIABLES
           name=foo     Your name
