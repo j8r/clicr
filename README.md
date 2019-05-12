@@ -1,5 +1,6 @@
 # Clicr
 
+[![Build Status](https://cloud.drone.io/api/badges/j8r/clicr/status.svg)](https://cloud.drone.io/j8r/clicr)
 [![ISC](https://img.shields.io/badge/License-ISC-blue.svg?style=flat-square)](https://en.wikipedia.org/wiki/ISC_license)
 
 Command Line Interface for Crystal
