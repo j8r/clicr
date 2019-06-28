@@ -106,6 +106,8 @@ There can have subcommands that have subcommands indefinitely with their options
 Other parameters can be customized like names of sections, the `help_option` and `unknown` errors messages:
 
 ```crystal
+require "clicr"
+
 ARGV.replace %w(talk -j forename=Jack to_me)
 
 def run_cli
@@ -124,38 +126,39 @@ def run_cli
     unknown_variable: "unknown variable",
     commands: {
       talk: {
-        alias: 't',
-        info: "Talk",
+        alias:   't',
+        info:    "Talk",
         options: {
           joking: {
             short: 'j',
-            info: "Joke tone"
-          }
+            info:  "Joke tone",
+          },
         },
         variables: {
           forename: {
             default: "Foo",
-            info: "Specify your forename",
+            info:    "Specify your forename",
           },
           surname: {
             default: "Bar",
-            info: "Specify your surname",
+            info:    "Specify your surname",
           },
         },
         commands: {
           to_me: {
-            info: "Hey that's me!",
-            action: "tell",
+            info:    "Hey that's me!",
+            action:  "tell",
+            inherit: %w(forename surname joking),
           },
-        }
-      }
+        },
+      },
     }
   )
 end
 
 def tell(forename, surname, joking)
   if joking
-     puts "Yo my best #{forename} #{surname} friend!"
+    puts "Yo my best #{forename} #{surname} friend!"
   else
     puts "Hello #{forename} #{surname}."
   end
