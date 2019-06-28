@@ -288,6 +288,10 @@ variables: {
 * if no `default` value is set, `nil` will be the default one
 * underscores `_` will replaced by dashes `-` for the CLI option name. The underlying variable will still have underscores
 
+### Variables and options inheritance
+
+To include `myoption` and `myvar` to a command, add `inherit: %(myvar myoption)` to the command arguments.
+
 ## Error handling
 
 When a command issued can't be performed, an exception is raised that can be either `Help`, `ArgumentRequired`, `UnknownCommand`, `UnknownOption` or `UnknownVariable` depending of the error cause.

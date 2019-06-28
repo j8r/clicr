@@ -8,9 +8,10 @@ struct SimpleCli
     Clicr.create(
       commands: {
         talk: {
-          alias:  't',
-          info:   "Talk",
-          action: "test",
+          alias:   't',
+          info:    "Talk",
+          action:  "test",
+          inherit: %w(name yes),
         },
         run: {
           info:      "Tests vars",
@@ -21,6 +22,7 @@ struct SimpleCli
           info:      "Tests arrays",
           action:    "array",
           arguments: %w(app numbers...),
+          inherit:   %w(name yes),
           variables: {
             var: {
               default: nil,
@@ -34,6 +36,7 @@ struct SimpleCli
           description
           E
           action:    "options_variables",
+          inherit:   %w(yes),
           variables: {
             subvar: {
               info:    "sub variable",
@@ -50,9 +53,10 @@ struct SimpleCli
         klass: {
           info:      "klass",
           action:    "@result = Klass.new().met",
+          inherit:   %w(name yes),
           variables: {
             var: {
-              info:    "an variable passed to the constructor",
+              info:    "a variable passed to the constructor",
               default: "default",
             },
           },
@@ -88,7 +92,7 @@ struct SimpleCli
     @result = "#{yes} #{name}"
   end
 
-  def run(name, yes, application, folder)
+  def run(application, folder)
     @result = application + " runned in " + folder
   end
 
@@ -96,7 +100,7 @@ struct SimpleCli
     @result = "#{yes} #{app} #{numbers.join(' ')} #{var}"
   end
 
-  def options_variables(name, yes, sub_opt, subvar)
+  def options_variables(yes, sub_opt, subvar)
     @result = "#{sub_opt} #{subvar}"
   end
 end
@@ -256,12 +260,11 @@ describe Clicr do
         description
 
         VARIABLES
-          name=foo     Your name
           subvar=SUB   sub variable
 
         OPTIONS
-          -y, --yes       Print the name
           -s, --sub-opt   sub options
+          -y, --yes       Print the name
 
         'app options_variables --help' to show the help.
         HELP
