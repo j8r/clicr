@@ -17,13 +17,18 @@ dependencies:
     github: j8r/clicr
 ```
 
+## Features
+
+This library consists to one single macro `Clicr.create`, that expands to recursive `while` loops and `case` conditions.
+
+Thanks to them, the advantages are:
+
+- Compile time validation
+- Declarative `NamedTuple` configuration
+- Customizable configuration - supports all languages (look at [Clicr.create](src/clicr.cr) parameters)
+- Fast execution (but a bit slower compilation)
+
 ## Usage
-
-This shard consists to one single macro `Clicr.create`, that expands to recursive `while` loops and `case` conditions.
-
-All the CLI, including errors, can be translated in the language of choice, look at the parameters at `src/clir.cr`.
-
-All the configurations are done in a `NamedTuple` like follow:
 
 ### Simple example
 
