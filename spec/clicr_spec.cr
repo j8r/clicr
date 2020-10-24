@@ -1,274 +1,259 @@
 require "spec"
 require "../src/clicr.cr"
 
-struct SimpleCli
-  getter result : String = ""
+class TestCLI
+  getter help : String = ""
+  getter error : String = ""
+  @clicr : Clicr
 
-  def initialize
-    Clicr.create(
+  def initialize(args)
+    other_options = {
+      subvar: {
+        info:    "sub variable",
+        default: nil,
+      },
+    }
+
+    main_options = {
+      name: {
+        info:    "Your name",
+        default: "foo",
+        short:   'n',
+      },
+      yes: {
+        short: 'y',
+        info:  "Print the name",
+      },
+    }
+
+    @clicr = Clicr.new(
+      args: args,
+      name: "myapp",
       commands: {
         talk: {
-          alias:   't',
           info:    "Talk",
-          action:  "test",
-          inherit: %w(name yes),
+          action:  {"TestCLI.talk": "t"},
+          options: main_options,
         },
-        run: {
-          info:      "Tests vars",
-          action:    "run",
-          arguments: %w(application folder),
-        },
-        test_array: {
-          info:      "Tests arrays",
-          action:    "array",
-          arguments: %w(app numbers...),
-          inherit:   %w(name yes),
-          variables: {
+        "test-multiple-no-limit": {
+          action:    {"TestCLI.args": ""},
+          arguments: %w(app numbers),
+          options:   {
             var: {
               default: nil,
             },
-          },
+          }.merge(main_options),
+        },
+        "test-simple": {
+          action:    {"TestCLI.args": ""},
+          arguments: %w(application folder),
+          options:   {name: main_options[:name]},
+        },
+        "tuple-args": {
+          action:    {"TestCLI.tuple_args": ""},
+          info:      "Test args",
+          arguments: {"one", "two"},
+        },
+        "test-parens": {
+          action: {"TestCLI.args().to_s": ""},
         },
         options_variables: {
           info:        "Test sub options/variables",
           description: <<-E.to_s,
-          Multi-line
-          description
-          E
-          action:    "options_variables",
-          inherit:   %w(yes),
-          variables: {
-            subvar: {
-              info:    "sub variable",
-              default: "SUB",
-            },
-          },
+        Multi-line
+        description
+        E
+          action:  {"TestCLI.args": ""},
           options: {
             sub_opt: {
               short: 's',
               info:  "sub options",
             },
-          },
-        },
-        klass: {
-          info:      "klass",
-          action:    "@result = Klass.new().met",
-          inherit:   %w(name yes),
-          variables: {
-            var: {
-              info:    "a variable passed to the constructor",
-              default: "default",
-            },
-          },
+          }.merge(**other_options, **main_options),
         },
       },
-      variables: {
-        name: {
-          info:    "Your name",
-          default: "foo",
-        },
-      },
-      options: {
-        yes: {
-          short: 'y',
-          info:  "Print the name",
-        },
-      }
+      options: main_options,
     )
+    @clicr.help_callback = ->(msg : String) {
+      @help = msg
+      # puts msg
+    }
+
+    @clicr.error_callback = ->(msg : String) {
+      @error = msg
+      # puts msg
+    }
   end
 
-  struct Klass
-    @var : String
-
-    def initialize(name, @var, yes)
-    end
-
-    def met
-      @var
-    end
+  def run
+    @clicr.run
   end
 
-  def test(name, yes)
-    @result = "#{yes} #{name}"
+  def self.tuple_args(arguments : Tuple(String, String))
+    arguments
   end
 
-  def run(application, folder)
-    @result = application + " runned in " + folder
+  def self.talk(name : String, yes : Bool)
+    {name, yes}
   end
 
-  def array(name, yes, app, numbers, var)
-    @result = "#{yes} #{app} #{numbers.join(' ')} #{var}"
-  end
-
-  def options_variables(yes, sub_opt, subvar)
-    @result = "#{sub_opt} #{subvar}"
+  def self.args(**args)
+    args
   end
 end
 
 describe Clicr do
-  describe "simple cli" do
-    describe "commands" do
-      it "run the command" do
-        ARGV.replace ["talk"]
-        SimpleCli.new.result.should eq "false foo"
-      end
-
-      it "run single character command" do
-        ARGV.replace ["t"]
-        SimpleCli.new.result.should eq "false foo"
-      end
+  describe "commands" do
+    it "runs a full command" do
+      TestCLI.new(["talk"]).run.should eq({"foo", false})
     end
 
-    describe "arguments" do
-      it "uses simple" do
-        ARGV.replace ["run", "myapp", "/tmp"]
-        SimpleCli.new.result.should eq "myapp runned in /tmp"
-      end
-
-      it "uses multiple with option" do
-        ARGV.replace ["test_array", "myapp", "-y", "2", "3"]
-        SimpleCli.new.result.should eq "true myapp 2 3 "
-      end
-
-      it "sets a variable at the end" do
-        ARGV.replace ["test_array", "myapp", "2", "3", "var=T"]
-        SimpleCli.new.result.should eq "false myapp 2 3 T"
-      end
-
-      it "sets a variable at the begining" do
-        ARGV.replace ["test_array", "myapp", "var=T", "2", "3"]
-        SimpleCli.new.result.should eq "false myapp 2 3 T"
-      end
-
-      it "sets a variable in the midde" do
-        ARGV.replace ["test_array", "myapp", "2", "var=T", "3"]
-        SimpleCli.new.result.should eq "false myapp 2 3 T"
-      end
+    it "runs a single character command" do
+      TestCLI.new(["t"]).run.should eq({"foo", false})
     end
 
-    describe "variables" do
-      it "set value at the end" do
-        ARGV.replace ["talk", "name=bar"]
-        SimpleCli.new.result.should eq "false bar"
-      end
+    it "tests calling a method with parenthesis" do
+      TestCLI.new(["test-parens"]).run.should eq "{}"
+    end
+  end
 
-      it "set value at the beginning" do
-        ARGV.replace ["name=bar", "talk"]
-        SimpleCli.new.result.should eq "false bar"
-      end
-
-      it "set one with no commands" do
-        ARGV.replace ["name=bar"]
-        expect_raises Clicr::Help do
-          SimpleCli.new.result
-        end
-      end
+  describe "arguments" do
+    it "uses simple" do
+      TestCLI.new(["test-simple", "myapp", "/tmp"]).run.should eq({
+        arguments: ["myapp", "/tmp"],
+        name:      "foo",
+      })
     end
 
-    describe "options" do
+    it "uses multiple with no limit" do
+      TestCLI.new(["test-multiple-no-limit", "myapp", "-y", "2", "3"]).run.should eq({
+        arguments: ["myapp", "2", "3"],
+        var:       nil,
+        name:      "foo",
+        yes:       true,
+      })
+    end
+
+    it "sets a variable with arguments" do
+      TestCLI.new(["test-multiple-no-limit", "myapp", "2", "--var", "Value", "3"]).run.should eq({
+        arguments: ["myapp", "2", "3"],
+        var:       "Value",
+        name:      "foo",
+        yes:       false,
+      })
+    end
+
+    describe "tuple args" do
+      it "provides the expected number" do
+        TestCLI.new(["tuple-args", "1", "2"]).run.should eq({"1", "2"})
+      end
+
+      it "fails because of too many" do
+        cli = TestCLI.new(["tuple-args", "1"])
+        cli.run.should be_nil
+        cli.error.should_not be_empty
+      end
+
+      it "fails because of too few" do
+        cli = TestCLI.new(["tuple-args", "1", "2", "3"])
+        cli.run.should be_nil
+        cli.error.should_not be_empty
+      end
+    end
+  end
+
+  describe "unknown command" do
+    it "not known sub-command" do
+      cli = TestCLI.new(["talk", "Not exists"])
+      cli.run.should be_nil
+      cli.error.should_not be_empty
+    end
+  end
+
+  describe "options" do
+    describe "boolean" do
       it "use one at the end" do
-        ARGV.replace ["talk", "--yes"]
-        SimpleCli.new.result.should eq "true foo"
+        TestCLI.new(["talk", "--yes"]).run.should eq({"foo", true})
       end
 
       it "uses a single char one at the end" do
-        ARGV.replace ["talk", "-y"]
-        SimpleCli.new.result.should eq "true foo"
+        TestCLI.new(["talk", "-y"]).run.should eq({"foo", true})
       end
 
       it "uses concatenated single chars" do
-        ARGV.replace ["options_variables", "-ys"]
-        SimpleCli.new.result.should eq "true SUB"
-      end
-
-      it "set one with no command" do
-        ARGV.replace ["-y"]
-        expect_raises Clicr::Help do
-          SimpleCli.new.result
-        end
+        TestCLI.new(["options_variables", "-ys"]).run.should eq({
+          subvar:  nil,
+          sub_opt: true,
+          name:    "foo",
+          yes:     true,
+        })
       end
     end
 
-    describe "options/variables of sub command" do
-      it "by setting no values" do
-        ARGV.replace ["options_variables"]
-        SimpleCli.new.result.should eq "false SUB"
+    describe "string" do
+      it "sets one with equal '='" do
+        TestCLI.new(["talk", "--name=bar"]).run.should eq({"bar", false})
       end
 
-      it "by setting values" do
-        ARGV.replace ["options_variables", "--sub-opt", "subvar=VALUE"]
-        SimpleCli.new.result.should eq "true VALUE"
+      it "sets one with space ' '" do
+        TestCLI.new(["talk", "--name", "bar"]).run.should eq({"bar", false})
+      end
+
+      it "sets a short one" do
+        TestCLI.new(["talk", "-n", "bar"]).run.should eq({"bar", false})
+      end
+    end
+  end
+
+  describe "help" do
+    describe "print main help" do
+      help = <<-HELP
+      Usage: myapp COMMANDS [OPTIONS]
+
+      COMMANDS
+        options_variables        Test sub options/variables
+        talk, t                  Talk
+        test-multiple-no-limit
+        test-parens
+        test-simple
+        tuple-args               Test args
+
+      OPTIONS
+        --name, -n foo   Your name
+        --yes, -y        Print the name
+
+      'myapp --help' to show the help.
+      HELP
+      it "with -h" do
+        cli = TestCLI.new(["-h"])
+        cli.run
+        cli.help.should eq help
+      end
+
+      it "with no arguments" do
+        cli = TestCLI.new Array(String).new
+        cli.run
+        cli.help.should eq help
       end
     end
 
-    it "sets all parameters" do
-      ARGV.replace ["talk", "-y", "name=bar"]
-      SimpleCli.new.result.should eq "true bar"
-    end
+    it "prints for sub command" do
+      cli = TestCLI.new(["options_variables", "--help"])
+      cli.run
+      cli.help.should eq <<-HELP
+      Usage: myapp options_variables [OPTIONS]
 
-    it "uses a variable assignation with a class and a method" do
-      ARGV.replace ["klass", "var=value"]
-      SimpleCli.new.result.should eq "value"
-    end
+      Multi-line
+      description
 
-    describe "help" do
-      describe "print main help" do
-        help = <<-HELP
-        Usage: app COMMAND [VARIABLES] [OPTIONS]
+      OPTIONS
+        --name, -n foo    Your name
+        --sub_opt, -s     sub options
+        --subvar String   sub variable
+        --yes, -y         Print the name
 
-        COMMAND
-          t, talk             Talk
-          run                 Tests vars
-          test_array          Tests arrays
-          options_variables   Test sub options/variables
-          klass               klass
-
-        VARIABLES
-          name=foo   Your name
-
-        OPTIONS
-          -y, --yes   Print the name
-
-        'app --help' to show the help.
-        HELP
-        it "with -h" do
-          ex = expect_raises Clicr::Help do
-            ARGV.replace ["-h"]
-            SimpleCli.new.result
-          end
-          ex.message.should eq help
-        end
-
-        it "with no arguments" do
-          ex = expect_raises Clicr::Help do
-            ARGV.replace Array(String).new
-            SimpleCli.new.result
-          end
-          ex.message.should eq help
-        end
-      end
-
-      it "prints for sub command" do
-        ex = expect_raises Clicr::Help do
-          ARGV.replace ["options_variables", "-h"]
-          SimpleCli.new.result
-        end
-        ex.message.should eq <<-HELP
-        Usage: app options_variables [VARIABLES] [OPTIONS]
-
-        Multi-line
-        description
-
-        VARIABLES
-          subvar=SUB   sub variable
-
-        OPTIONS
-          -s, --sub-opt   sub options
-          -y, --yes       Print the name
-
-        'app options_variables --help' to show the help.
-        HELP
-      end
+      'myapp options_variables --help' to show the help.
+      HELP
     end
   end
 end

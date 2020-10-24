@@ -19,14 +19,13 @@ dependencies:
 
 ## Features
 
-This library consists to one single macro `Clicr.create`, that expands to recursive `while` loops and `case` conditions.
+This library uses generics, thanks to Crystal's powerful type-inference, and few macros, to provide this following advantages:
 
-Thanks to them, the advantages are:
-
-- Compile time validation
+- Compile time validation - methods must accept all possible options and arguments 
+- No possible double commands/options at compile-time
 - Declarative `NamedTuple` configuration
-- Customizable configuration - supports all languages (look at [Clicr.create](src/clicr.cr) parameters)
-- Fast execution (but a bit slower compilation)
+- Customizable configuration - supports all languages (See [Clicr.new](src/clicr.cr) parameters)
+- Fast execution, limited runtime
 
 ## Usage
 
@@ -35,58 +34,46 @@ Thanks to them, the advantages are:
 ```crystal
 require "clicr"
 
-def run_cli
-  Clicr.create(
-    name: "myapp",
-    info: "Myapp can do everything",
-    commands: {
-      talk: {
-        alias: 't',
-        info: "Talk",
-        action: "say",
-        arguments: %w(directory),
+Clicr.new(
+  info: "This is my app.",
+  commands: {
+    talk: {
+      info:      "Talk",
+      action:    {"CLI.say": "t"},
+      arguments: %w(directory),
+      options:   {
+        name: {
+          info:    "Your name",
+          default: "foo",
+        },
+        no_confirm: {
+          short: 'y',
+          info:  "Print the name",
+        },
       },
     },
-     variables: {
-       name: {
-         info: "Your name",
-         default: "foo",
-       },
-     },
-     options: {
-       no_confirm: {
-         short: 'y',
-         info: "Print the name",
-       }
-     }
-  )
-end
+  },
+).run
 
-def say(directory, name, no_confirm)
-  if no_confirm
-    puts "yes, #{name} in #{directory}"
-  else
-    puts "no, #{name} in #{directory}"
+module CLI
+  def self.say(arguments, name, no_confirm)
+    puts arguments, name, no_confirm
   end
 end
-
-run_cli
 ```
 
 Example of commands:
 ```
 $ myapp --help
-Usage: myapp COMMAND [VARIABLES] [OPTIONS]
+Usage: myapp COMMANDS [OPTIONS]
 
 Myapp can do everything
 
-COMMAND
+COMMANDS
   t, talk   Talk
 
-VARIABLES
-  name=foo   Your name
-
 OPTIONS
+  --name=foo         Your name
   -y, --no-confirm   Print the name
 
 'myapp --help' to show the help.
@@ -106,103 +93,28 @@ no, foo in test
 
 ### Advanced example
 
-There can have subcommands that have subcommands indefinitely with their options/variables.
-
-Other parameters can be customized like names of sections, the `help_option` and `unknown` errors messages:
-
-```crystal
-require "clicr"
-
-ARGV.replace %w(talk -j forename=Jack to_me)
-
-def run_cli
-  Clicr.create(
-    name: "myapp",
-    info: "Application default description",
-    usage_name: "Usage: ",
-    command_name: "COMMAND",
-    options_name: "OPTIONS",
-    variables_name: "VARIABLES",
-    help: "to show the help.",
-    help_option: "help",
-    argument_required: "argument required",
-    unknown_command: "unknown command",
-    unknown_option: "unknown option",
-    unknown_variable: "unknown variable",
-    commands: {
-      talk: {
-        alias:   't',
-        info:    "Talk",
-        options: {
-          joking: {
-            short: 'j',
-            info:  "Joke tone",
-          },
-        },
-        variables: {
-          forename: {
-            default: "Foo",
-            info:    "Specify your forename",
-          },
-          surname: {
-            default: "Bar",
-            info:    "Specify your surname",
-          },
-        },
-        commands: {
-          to_me: {
-            info:    "Hey that's me!",
-            action:  "tell",
-            inherit: %w(forename surname joking),
-          },
-        },
-      },
-    }
-  )
-end
-
-def tell(forename, surname, joking)
-  if joking
-    puts "Yo my best #{forename} #{surname} friend!"
-  else
-    puts "Hello #{forename} #{surname}."
-  end
-end
-
-run_cli
-```
-
-Result: `Yo my best Jack Bar friend!`
+See the  one in the [spec test](spec/clicr_spec.cr)
 
 ### CLI Composition
 
-It's also possible to merge several CLIs together
+It's also possible to merge several commands or options together.
 
 ```crystal
-macro cli(**new_commands)
-
-def run
-  Clicr.create(
-    name: "myapp",
-    info: "Test app",
-    commands: {
-      puts: {
-        alias: 'p',
-        info: "It puts",
-        action: "puts",
-      },
-      {{**new_commands}}
-    }
-  )
-end
-run
-
-end
-
-cli(
+other = {
   pp: {
     info: "It pp",
     action: "pp"
+  }
+}
+
+Clicr.new(
+  info: "Test app",
+  commands: {
+    puts: {
+      alias: 'p',
+      info: "It puts",
+      action: "puts",
+    }.merge(other) 
   }
 )
 ```
@@ -228,36 +140,40 @@ Example: `s`, `start`
 
 ```crystal
 commands: {
-  start: {
-    alias: 's',
+  short: {
+    action: { "say": "s" },
     info: "Starts the server",
     description: <<-E.to_s,
     This is a full multi-line description
     explaining the command
     E,
-    action: "say",
   }
 }
 ```
 
-* `alias` creates an alias of the command. The alias mustn't already exist
+* `action` is a `NamedTuple` with as key the method to call, and as a value a command alia, which can be empty for none.
 * in `action`, parentheses can be added to determine the arguments placement, like `File.new().file`
 * `info` is supposed to be short, one-line description
 * `description` can be a multi-line description of the command. If not set, `info` will be used. 
 
 ### Arguments
 
-Example: `name`, `directory`
+Example: `command FooBar`, `command mysource mytarget`
 
 ```crystal
-arguments: %w(directory names...),
+arguments: %w(directory names)
 ```
 
-* list arguments required after the command in the following order
-* when arguments are specified, unless when ending with `...`, they becomes **mandatory**
-* if the last argument ends with `...`, it isn't mandatory and have a default empty `Array(String)` value. All following arguments will be appended to it
+```crystal
+arguments: {"source", "target"}
+```
+
+* if a `Tuple` is given, the arguments number **must** be exactly the `Tuple` size.
+* if an `Array` is given, the arguments number must be at least, or more, the `Array` size
 
 ### Options
+
+#### Boolean options
 
 Example: `-y`, `--no-confirm`
 
@@ -274,16 +190,15 @@ options: {
 * `short` creates a short alias of one character - must be a `Char`
 * concatenating single characters arguments like `-Ry1` is possible
 
-Special case, the `help_option`, which is set to `"help"` with the options `-h, --help` by default
-* Shows the help of the current (sub)command
-* has the priority over every other arguments including other options, commands and variables
+Special case: the `help_option`, which is set to `"help"` with the options `-h, --help` by default,
+shows the help of the current (sub)command
 
-### Variables
+#### String options
 
-Example: `name=foo`
+Example: `--name=foo`, or `--name foo`
 
 ```crystal
-variables: {
+options: {
   name: {
     info: "This is your name",
     default: "Foobar",
@@ -291,36 +206,10 @@ variables: {
 }
 ```
 
-* apply recursively to subcommands
+* by default, apply recursively to subcommands. Can be disabled with `inherit: false`
+* a `default` value, which can be nil, is required to define the option as an option string.
 * can only be `String` (because arguments passed as `ARGV` are `Array(String)`) - if others type are needed, the cast must be done after the `action` method call
-* if no `default` value is set, `nil` will be the default one
-* underscores `_` will replaced by dashes `-` for the CLI option name. The underlying variable will still have underscores
-
-### Variables and options inheritance
-
-To include `myoption` and `myvar` to a command, add `inherit: %(myvar myoption)` to the command arguments.
-
-## Error handling
-
-When a command issued can't be performed, an exception is raised that can be either `Help`, `ArgumentRequired`, `UnknownCommand`, `UnknownOption` or `UnknownVariable` depending of the error cause.
-
-You can catch this exceptions like this:
-
-```crystal
-def my_cli
-  include Clicr
-  create(
-  ...
-  )
-rescue ex : Help
-  puts ex; exit 0
-rescue ex : ArgumentRequired | UnknownCommand | UnknownOption | UnknownVariable
-  abort ex
-rescue ex
-  abort ex
-end
-```
 
 ## License
 
-Copyright (c) 2018 Julien Reichardt - ISC License
+Copyright (c) 2020 Julien Reichardt - ISC License

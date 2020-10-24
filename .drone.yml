@@ -7,11 +7,11 @@ platform:
 
 steps:
 - name: format
-  image: jrei/crystal-alpine
+  image: crystallang/crystal:latest-alpine
   commands:
   - crystal tool format --check
 
 - name: test
-  image: jrei/crystal-alpine
+  image: crystallang/crystal:latest-alpine
   commands:
-  - crystal spec
+  - crystal spec --warnings all --error-on-warnings

@@ -1,8 +1,8 @@
 name: clicr
-version: 0.7.0
+version: 1.0.0
 
 authors:
-  - Julien Reichardt <mi@jrei.ch>
+  - Julien Reichardt <git@jrei.ch>
 
 description: A simple declarative command line interface builder
 

@@ -1,255 +1,190 @@
-module Clicr
-  {% for exception in %w(Help ArgumentRequired UnknownCommand UnknownOption UnknownVariable) %}
-  class {{exception.id}} < Exception
-  end
-  {% end %}
+require "./command"
 
-  macro create(
-    name = "app",
-    info = nil,
-    description = nil,
-    usage_name = "Usage: ",
-    command_name = "COMMAND",
-    options_name = "OPTIONS",
-    variables_name = "VARIABLES",
-    help = "to show the help.",
-    help_option = "help",
-    argument_required = "argument required",
-    unknown_command = "unknown command",
-    unknown_option = "unknown option",
-    unknown_variable = "unknown variable",
+class Clicr
+  @sub : Subcommand
+
+  property help_callback : Proc(String, Nil) = ->(msg : String) do
+    STDOUT.puts msg
+    exit 0
+  end
+
+  property error_callback : Proc(String, Nil) = ->(msg : String) do
+    STDERR.puts msg
+    exit 1
+  end
+
+  property help_footer : Proc(String, String) = ->(command : String) do
+    "\n'#{command} --help' to show the help."
+  end
+
+  property argument_required : Proc(String, String, String) = ->(command : String, argument : String) do
+    "argument required for '#{command}': #{argument}"
+  end
+
+  property unknown_argument : Proc(String, String, String) = ->(command : String, argument : String) do
+    "unknown argument for '#{command}': #{argument}"
+  end
+
+  property unknown_command : Proc(String, String, String) = ->(command : String, sub_command : String) do
+    "unknown command for '#{command}': '#{sub_command}'"
+  end
+
+  property unknown_option : Proc(String, String, String) = ->(command : String, option : String) do
+    "unknown option for '#{command}': #{option}"
+  end
+
+  getter help_option : String
+
+  protected getter args : Array(String)
+
+  # CLI arguments
+  protected getter arguments = Array(String).new
+
+  def initialize(
+    *,
+    @name : String = Path[PROGRAM_NAME].basename,
+    info : String? = nil,
+    description : String? = nil,
+    @usage_name : String = "Usage: ",
+    @commands_name : String = "COMMANDS",
+    @options_name : String = "OPTIONS",
+    @help_option : String = "help",
+    args : Array(String) = ARGV,
     action = nil,
-    inherit = ArrayLiteral,
-    arguments = ArrayLiteral,
-    commands = NamedTupleLiteral,
-    options = NamedTupleLiteral,
-    variables = NamedTupleLiteral
+    arguments = nil,
+    commands = nil,
+    options = nil
   )
-    # {{name}} help
-    help = -> () do
-      raise Clicr::Help.new(
-        String.build do |str|
-          str << <<-%HEADER
-          {{usage_name.id}}{{name.id}}\
-          {% if arguments.is_a? ArrayLiteral %} {{arguments.join(' ').upcase.id}}{% end %}\
-          {% if commands.is_a? NamedTupleLiteral %} {{command_name.upcase.id}}{% end %}\
-          {% if variables.is_a? NamedTupleLiteral %} [{{variables_name.upcase.id}}]{% end %}\
-          {% if options.is_a? NamedTupleLiteral %} [{{options_name.upcase.id}}]{% end %}
-          %HEADER
-          {% if description || info %}
-          str << "\n\n" << {{ description || info }}
-          {% end %}
-
-          {% if commands.is_a? NamedTupleLiteral %}
-          str << "\n\n{{command_name.id}}"
-          str << Clicr.align(str, {
-          {% for command, value in commands %}
-            { "{% if value[:alias] %}\
-            {{value[:alias].id}}, \
-            {% end %}{{command.id}}", {{value[:info]}} },
-          {% end %} })
-          {% end %}
-
-          {% if variables.is_a? NamedTupleLiteral %}
-          str << "\n\n{{variables_name.id}}"
-          str << Clicr.align(str, {
-          {% for var, value in variables %}\
-            { %({{var.id}}{% if value[:default] %}=#{{{value[:default]}}}\
-            {% end %}), {{value[:info]}} },
-          {% end %} })
-          {% end %}
-
-          {% if options.is_a? NamedTupleLiteral %}
-          str << "\n\n{{options_name.id}}"
-          str << Clicr.align(str, {
-          {% for opt, value in options %}
-            { "{% if value[:short].is_a? CharLiteral %}\
-            -{{value[:short].id}}, \
-            {% else %}    \
-            {% end %}\
-            --{{opt.gsub(/_/, "-").id}}", {{value[:info]}} },
-          {% end %} })
-          {% end %}
-
-          str << "\n\n'{{name.id}} --{{help_option.id}}' {{help.id}}"
-        end
-      )
-    end
-
-    # Initialize default values
-    {% if variables.is_a? NamedTupleLiteral %}{% for var, subargs in variables %}\
-      {% if !subargs[:initialized] %}\
-      __{{var.id}} = {{subargs[:default]}}
-      {% end %}{% end %}{% end %}\
-    {% if options.is_a? NamedTupleLiteral %}{% for var, subargs in options %}\
-      __{{var.id}} = false
-    {% end %}{% end %}
-
-    # Parse arguments
-    {% if arguments.is_a? ArrayLiteral %}
-    {% for arg in arguments %}\
-    {% if arg.ends_with? "..." %}\
-      # Array argument
-      __{{arg[0..-4].id}} = Array(String).new
-    {% else %}\
-    # Simple argument
-    __{{arg.id}} = ""
-    case arg = ARGV.first?
-    when nil
-      raise Clicr::ArgumentRequired.new "'{{name.id}}': {{argument_required.id}}: {{arg.upcase.id}}\n'{{name.id}} --{{help_option.id}}' {{help.id}}"
-    when "", "--{{help_option.gsub(/_/, "-").id}}", "-{{help_option.chars.first.id}}" then help.call
-    else
-      __{{arg.id}} = arg
-    ARGV.shift
-    end
-    {% end %}
-    {% end %}
-    {% end %}
-
-    # Loop while there are argument
-    while !ARGV.empty?
-      # An action or subcommands are needed
-      {% if !action && !commands.is_a?(NamedTupleLiteral) && !commands.is_a?(HashLiteral) %}{{raise "You need at least an action to perform for #{name}, or subcommands that have actions to perfom"}}{% end %}
-
-      case ARGV.first
-        # Generate commands match
-      {% if commands.is_a? NamedTupleLiteral || commands.is_a? HashLiteral %}{% for subcommand, subargs in commands %}
-      when "{{subcommand}}"{% if subargs[:alias] %}, "{{subargs[:alias].id}}"{% end %}
-        # Remove the command executed
-        ARGV.shift?
-
-        {% subargs[:name] = "{{name.id}} {{subcommand.id}}" %}\
-        {% subargs[:usage_name] = usage_name %}\
-        {% subargs[:command_name] = command_name %}\
-        {% subargs[:options_name] = options_name %}\
-        {% subargs[:variables_name] = variables_name %}\
-        {% subargs[:help] = help %}\
-        {% subargs[:help_option] = help_option %}\
-        {% subargs[:argument_required] = argument_required %}\
-        {% subargs[:unknown_command] = unknown_command %}\
-        {% subargs[:unknown_option] = unknown_option %}\
-        {% subargs[:unknown_variable] = unknown_variable %}\
-
-        # ":initialized" is used to tell that the variable is declared, and not declare it again (thus override it) in further blocks
-        # Merge options for recursive use in subcommands.
-        {% if !subargs[:options] %}\
-          {% subargs[:options] = {} of String => String %}\
-        {% end %}\
-        {% if options.is_a? NamedTupleLiteral || options.is_a? HashLiteral %}\
-          {% for option, values in options %}\
-            {% values[:initialized] = true %}\
-            {% if subargs[:inherit].is_a?(ArrayLiteral) && subargs[:inherit].includes? option.stringify %}\
-              {% subargs[:options][option] = values %}\
-            {% end %}\
-          {% end %}\
-        {% end %}\
-
-        # Merge variables for recursive use in subcommands
-        {% if !subargs[:variables] %}\
-          {% subargs[:variables] = {} of String => String %}\
-        {% end %}\
-        {% if variables.is_a? NamedTupleLiteral || variables.is_a? HashLiteral %}\
-          {% for var, values in variables %}\
-            {% values[:initialized] = true %}
-            {% if subargs[:inherit].is_a?(ArrayLiteral) && subargs[:inherit].includes? var.stringify %}\
-              {% subargs[:variables][var] = values %}\
-            {% end %}\
-          {% end %}\
-        {% end %}\
-        Clicr.create(
-          "{{name.id}} {{subcommand.id}}",
-          {{subargs[:info]}},
-          {{subargs[:description]}},
-          {{usage_name}},
-          {{command_name}},
-          {{options_name}},
-          {{variables_name}},
-          {{help}},
-          {{help_option}},
-          {{argument_required}},
-          {{unknown_command}},
-          {{unknown_option}},
-          {{unknown_variable}},
-          {{subargs[:action]}},
-          {{subargs[:inherit]}},
-          {{subargs[:arguments]}},
-          {{subargs[:commands]}},
-          {% if subargs[:options] && !subargs[:options].empty? %}options: { {% for k, v in subargs[:options] %}{{k.id}}: {{v}},{% end %} },{% end %}
-          {% if subargs[:variables] && !subargs[:variables].empty? %}variables: { {% for k, v in subargs[:variables] %}{{k.id}}: {{v}},{% end %} },{% end %}
-        )
-      {% end %}{% end %}
-        # Help
-      when "", "--{{help_option.id}}", "-{{help_option.chars.first.id}}" then help.call
-      # Generate variables match
-      {% if variables.is_a? NamedTupleLiteral || variables.is_a? HashLiteral %}{% for var, value in variables %}\
-      when .starts_with? "{{var}}=" then __{{var.id}} = ARGV.first[{{var.size + 1}}..-1]
-      {% end %}{% end %}
-
-        # Generate options match
-      {% if options.is_a? NamedTupleLiteral || options.is_a? HashLiteral %}{% for opt, value in options %}\
-      when "--{{opt.gsub(/_/, "-").id}}" then __{{opt.id}} = true {% end %}{% end %}
-
-      when .starts_with? "--"  then raise Clicr::UnknownOption.new "{{name.id}}: {{unknown_option.id}}: '#{ARGV.first}'\n'{{name.id}} --{{help_option.id}}' {{help.id}}"
-      when .starts_with? '-'
-        # Parse options
-        ARGV.first.lchop.each_char do |opt_char|
-        {% if options.is_a? NamedTupleLiteral || options.is_a? HashLiteral %}
-          case opt_char
-          {% for opt, value in options %}\
-          {% if value[:short].is_a? CharLiteral %} when {{value[:short]}}
-            __{{opt.id}} = true
-            next
-          {% end %}{% end %}
-          end
-        {% end %}
-          # Invalid option
-          raise Clicr::UnknownOption.new "{{name.id}}: {{unknown_option.id}}: '-#{opt_char}'\n'{{name.id}} --{{help_option.id}}' {{help.id}}"
-        end
-
-      # Custom handling of all the next arguments
-      {% if arguments.is_a? ArrayLiteral && arguments[-1].ends_with? "..." %}
-      else
-        __{{arguments[-1][0..-4].id}} << ARGV.first
-      {% else %}
-        # Exceptions
-      when .includes? '='
-          raise Clicr::UnknownVariable.new "{{name.id}}: {{unknown_variable.id}}: '#{ARGV.first.split('=')[0]}'\n'{{name.id}} --{{help_option.id}}' {{help.id}}"
-      else
-          raise Clicr::UnknownCommand.new "{{name.id}}: {{unknown_command.id}}: '#{ARGV.first}'\n'{{name.id}} --{{help_option.id}}' {{help.id}}"
-      {% end %}
-      end
-      ARGV.shift?
-    end
-
-    # At the end execute the command {{name}}
-    {% if action %}
-      return {{action.split("()")[0].id}}({% if variables.is_a? NamedTupleLiteral || variables.is_a? HashLiteral %}\
-         {% for var, _x in variables %}
-         {{var.id}}: __{{var.id}},{% end %}{% end %}\
-      {% if options.is_a? NamedTupleLiteral || options.is_a? HashLiteral %}
-         {% for opt, _x in options %}{{opt.id}}: __{{opt.id}},
-      {% end %}{% end %}\
-      {% if arguments.is_a? ArrayLiteral %}\
-        {% for arg in arguments %}\
-          {% if arg.ends_with? "..." %}\
-            {{arg[0..-4].id}}: __{{arg[0..-4].id}},
-          {% else %}\
-            {{arg.id}}: __{{arg.id}},
-        {% end %}\
-      {% end %}{% end %}){% if action.includes? "()" %}{{action.split("()")[1].id}}{% end %}
-    {% else %}
-      help.call
-    {% end %}
+    @sub = Command.create(
+      info: info,
+      description: description,
+      action: action,
+      arguments: arguments,
+      commands: commands,
+      options: options,
+    )
+    @args = args.dup
   end
 
-  def self.align(io, help_block : Tuple)
-    max_size = help_block.max_of { |arg, _| arg.size }
-    help_block.each do |arg, help|
-      io << "\n  " << arg
-      (max_size - arg.size).times do
-        io << ' '
+  def run(@args : Array(String) = @args)
+    @sub.exec @name, self
+  end
+
+  protected def parse_options(command_name : String, command : Command, & : String | Char, String? ->)
+    while arg = @args.shift?
+      if string_option = arg.lchop? "--"
+        if @help_option == string_option
+          return help command_name, command
+        else
+          var, equal_sign, val = string_option.partition '='
+          if equal_sign.empty?
+            yield var, nil
+          else
+            yield var, val
+          end
+        end
+      elsif option = arg.lchop? '-'
+        if @help_option[0] === option[0]
+          return help command_name, command
+        else
+          option.each_char do |char_opt|
+            yield char_opt, nil
+          end
+        end
+      elsif cmd_arguments = command.arguments
+        if !cmd_arguments.is_a?(Array) && @arguments.size + 1 > cmd_arguments.size
+          return @error_callback.call(
+            @unknown_argument.call(command_name, arg) + @help_footer.call(command_name)
+          )
+        end
+        @arguments << arg
+      else
+        next if arg.empty?
+        command.each_sub_command do |name, short, sub_command|
+          if name == arg || arg == short
+            return {command_name + ' ' + arg, sub_command}
+          end
+        end
+
+        return @error_callback.call(
+          @unknown_command.call(command_name, arg) + @help_footer.call(command_name)
+        )
       end
-      io << "   " << help
+    end
+
+    if (cmd_arguments = command.arguments) && cmd_arguments.is_a?(Tuple) && cmd_arguments.size > @arguments.size
+      @error_callback.call(
+        @argument_required.call(command_name, cmd_arguments[-1]) + @help_footer.call(command_name)
+      )
+    else
+      self
+    end
+  end
+
+  protected def help(command_name : String, command : Command, reason : String? = nil) : Nil
+    @help_callback.call(String.build do |io|
+      io << @usage_name << command_name << ' '
+      command.arguments.try &.each do |arg|
+        io << arg << ' '
+      end
+      if command.sub_commands
+        io << @commands_name << ' '
+      end
+      io << '[' << @options_name << "]\n"
+      if description = command.description || command.info
+        io << '\n' << description << '\n'
+      end
+      if command.sub_commands
+        io << '\n' << @commands_name
+        array = Array({String, String?}).new
+        command.each_sub_command do |name, short, sub_command|
+          if !short.empty?
+            name += ", " + short
+          end
+          array << {name, (sub_command.info || sub_command.description)}
+        end
+        align io, array
+        io.puts
+      end
+
+      if command.options
+        io << '\n' << @options_name
+        array = Array({String, String?}).new
+        command.each_option do |name, option|
+          next if name.is_a? Char
+          key = "--" + name
+          if short = option.short
+            key += ", -" + short
+          end
+          if option.string_option?
+            if default = option.default
+              key += ' ' + default
+            else
+              key += " String"
+            end
+          end
+          array << {key, option.info}
+        end
+        align io, array
+        io.puts
+      end
+
+      io << @help_footer.call command_name
+    end
+    )
+  end
+
+  private def align(io, array : Array({String, String?})) : Nil
+    max_size = array.max_of { |arg, _| arg.size }
+    array.sort_by! { |k, v| k }
+    array.each do |name, help|
+      io << "\n  " << name
+      if help
+        (max_size - name.to_s.size).times do
+          io << ' '
+        end
+        io << "   " << help
+      end
     end
   end
 end
