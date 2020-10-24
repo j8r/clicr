@@ -43,7 +43,7 @@ class Clicr
   def initialize(
     *,
     @name : String = Path[PROGRAM_NAME].basename,
-    info : String? = nil,
+    label : String? = nil,
     description : String? = nil,
     @usage_name : String = "Usage: ",
     @commands_name : String = "COMMANDS",
@@ -56,7 +56,7 @@ class Clicr
     options = nil
   )
     @sub = Command.create(
-      info: info,
+      label: label,
       description: description,
       action: action,
       arguments: arguments,
@@ -131,7 +131,7 @@ class Clicr
         io << @commands_name << ' '
       end
       io << '[' << @options_name << "]\n"
-      if description = command.description || command.info
+      if description = command.description || command.label
         io << '\n' << description << '\n'
       end
       if command.sub_commands
@@ -141,7 +141,7 @@ class Clicr
           if !short.empty?
             name += ", " + short
           end
-          array << {name, (sub_command.info || sub_command.description)}
+          array << {name, (sub_command.label || sub_command.description)}
         end
         align io, array
         io.puts
@@ -163,7 +163,7 @@ class Clicr
               key += " String"
             end
           end
-          array << {key, option.info}
+          array << {key, option.label}
         end
         align io, array
         io.puts

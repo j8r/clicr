@@ -5,18 +5,18 @@ end
 
 struct Clicr::Command(Action, Arguments, Commands, Options)
   include Clicr::Subcommand
-  getter info, description, arguments, inherit, exclude, sub_commands, options
+  getter label, description, arguments, inherit, exclude, sub_commands, options
 
   struct Option
-    getter short : Char?, info : String?, default : String?
+    getter short : Char?, label : String?, default : String?
     getter? string_option : Bool
 
-    def initialize(@info : String?, @short : Char?, @default : String?, @string_option : Bool)
+    def initialize(@label : String?, @short : Char?, @default : String?, @string_option : Bool)
     end
   end
 
   private def initialize(
-    @info : String?,
+    @label : String?,
     @description : String?,
     @inherit : Array(String)?,
     @exclude : Array(String)?,
@@ -28,7 +28,7 @@ struct Clicr::Command(Action, Arguments, Commands, Options)
   end
 
   def self.create(
-    info : String? = nil,
+    label : String? = nil,
     description : String? = nil,
     inherit : Array(String)? = nil,
     exclude : Array(String)? = nil,
@@ -39,7 +39,7 @@ struct Clicr::Command(Action, Arguments, Commands, Options)
   )
     {% !(Action < NamedTuple) && Commands == Nil && raise "At least an action to perform or sub-commands that have actions to perfom is needed." %}
     new(
-      info,
+      label,
       description,
       inherit,
       exclude,
@@ -65,7 +65,7 @@ struct Clicr::Command(Action, Arguments, Commands, Options)
   def each_option(& : Char | String, Option ->)
     @options.try &.each do |name, opt|
       option = Option.new(
-        info: opt[:info]?,
+        label: opt[:label]?,
         short: opt[:short]?,
         default: opt[:default]?,
         string_option: opt.has_key?(:default)

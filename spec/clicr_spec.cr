@@ -9,20 +9,20 @@ class TestCLI
   def initialize(args)
     other_options = {
       subvar: {
-        info:    "sub variable",
+        label:    "sub variable",
         default: nil,
       },
     }
 
     main_options = {
       name: {
-        info:    "Your name",
+        label:    "Your name",
         default: "foo",
         short:   'n',
       },
       yes: {
         short: 'y',
-        info:  "Print the name",
+        label:  "Print the name",
       },
     }
 
@@ -31,7 +31,7 @@ class TestCLI
       name: "myapp",
       commands: {
         talk: {
-          info:    "Talk",
+          label:    "Talk",
           action:  {"TestCLI.talk": "t"},
           options: main_options,
         },
@@ -51,14 +51,14 @@ class TestCLI
         },
         "tuple-args": {
           action:    {"TestCLI.tuple_args": ""},
-          info:      "Test args",
+          label:      "Test args",
           arguments: {"one", "two"},
         },
         "test-parens": {
           action: {"TestCLI.args().to_s": ""},
         },
         options_variables: {
-          info:        "Test sub options/variables",
+          label:        "Test sub options/variables",
           description: <<-E.to_s,
         Multi-line
         description
@@ -67,7 +67,7 @@ class TestCLI
           options: {
             sub_opt: {
               short: 's',
-              info:  "sub options",
+              label:  "sub options",
             },
           }.merge(**other_options, **main_options),
         },

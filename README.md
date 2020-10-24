@@ -35,20 +35,20 @@ This library uses generics, thanks to Crystal's powerful type-inference, and few
 require "clicr"
 
 Clicr.new(
-  info: "This is my app.",
+  label: "This is my app.",
   commands: {
     talk: {
-      info:      "Talk",
+      label:      "Talk",
       action:    {"CLI.say": "t"},
       arguments: %w(directory),
       options:   {
         name: {
-          info:    "Your name",
+          label:    "Your name",
           default: "foo",
         },
         no_confirm: {
           short: 'y',
-          info:  "Print the name",
+          label:  "Print the name",
         },
       },
     },
@@ -102,17 +102,17 @@ It's also possible to merge several commands or options together.
 ```crystal
 other = {
   pp: {
-    info: "It pp",
+    label: "It pp",
     action: "pp"
   }
 }
 
 Clicr.new(
-  info: "Test app",
+  label: "Test app",
   commands: {
     puts: {
       alias: 'p',
-      info: "It puts",
+      label: "It puts",
       action: "puts",
     }.merge(other) 
   }
@@ -142,7 +142,7 @@ Example: `s`, `start`
 commands: {
   short: {
     action: { "say": "s" },
-    info: "Starts the server",
+    label: "Starts the server",
     description: <<-E.to_s,
     This is a full multi-line description
     explaining the command
@@ -153,8 +153,8 @@ commands: {
 
 * `action` is a `NamedTuple` with as key the method to call, and as a value a command alia, which can be empty for none.
 * in `action`, parentheses can be added to determine the arguments placement, like `File.new().file`
-* `info` is supposed to be short, one-line description
-* `description` can be a multi-line description of the command. If not set, `info` will be used. 
+* `label` is supposed to be short, one-line description
+* `description` can be a multi-line description of the command. If not set, `label` will be used. 
 
 ### Arguments
 
@@ -181,7 +181,7 @@ Example: `-y`, `--no-confirm`
 options: {
   no_confirm: {
     short: 'y',
-    info: "No confirmations",
+    label: "No confirmations",
   }
 }
 ```
@@ -200,7 +200,7 @@ Example: `--name=foo`, or `--name foo`
 ```crystal
 options: {
   name: {
-    info: "This is your name",
+    label: "This is your name",
     default: "Foobar",
   }
 }
