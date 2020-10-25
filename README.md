@@ -43,7 +43,7 @@ Clicr.new(
       arguments: %w(directory),
       options:   {
         name: {
-          label:    "Your name",
+          label:   "Your name",
           default: "foo",
         },
         no_confirm: {
@@ -186,9 +186,9 @@ options: {
 }
 ```
 
-* apply recursively to subcommands
 * `short` creates a short alias of one character - must be a `Char`
 * concatenating single characters arguments like `-Ry1` is possible
+* dashes `-`, being invalid named arguments, will be replaced by `_` when calling the action method.
 
 Special case: the `help_option`, which is set to `"help"` with the options `-h, --help` by default,
 shows the help of the current (sub)command
@@ -206,8 +206,8 @@ options: {
 }
 ```
 
-* by default, apply recursively to subcommands. Can be disabled with `inherit: false`
-* a `default` value, which can be nil, is required to define the option as an option string.
+* an optional `default` value can be set.
+* if a `default` is not set, a `type` can be defined to cast from a given type, instead of a raw `String`. For example, `type: Int32` will call `Int32.new`.
 * can only be `String` (because arguments passed as `ARGV` are `Array(String)`) - if others type are needed, the cast must be done after the `action` method call
 
 ## License

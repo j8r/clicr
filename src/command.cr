@@ -7,11 +7,26 @@ struct Clicr::Command(Action, Arguments, Commands, Options)
   include Clicr::Subcommand
   getter label, description, arguments, inherit, exclude, sub_commands, options
 
-  struct Option
-    getter short : Char?, label : String?, default : String?
-    getter? string_option : Bool
+  struct Option(T)
+    getter short : Char?,
+      label : String?,
+      default : T? = nil,
+      type : T.class = T
+    getter? string_option : Bool = false
 
-    def initialize(@label : String?, @short : Char?, @default : String?, @string_option : Bool)
+    private def initialize(@label, @short, @type : T.class, @string_option)
+    end
+
+    def self.new(label : String? = nil, short : Char? = nil)
+      new label, short, Nil, false
+    end
+
+    def initialize(@type : T.class, @label : String? = nil, @short : Char? = nil)
+      @string_option = true
+    end
+
+    def initialize(@default : T, @label : String? = nil, @short : Char? = nil)
+      @string_option = true
     end
   end
 
@@ -62,19 +77,17 @@ struct Clicr::Command(Action, Arguments, Commands, Options)
     {% end %}
   end
 
-  def each_option(& : Char | String, Option ->)
-    @options.try &.each do |name, opt|
-      option = Option.new(
-        label: opt[:label]?,
-        short: opt[:short]?,
-        default: opt[:default]?,
-        string_option: opt.has_key?(:default)
-      )
-      yield name.to_s, option
-      if short = option.short
-        yield short, option
-      end
-    end
+  def each_option(& : Char | String ->)
+    {% if Options < NamedTuple %}
+      {% for name, opt in Options %}
+        # {{name}}
+        %name = Option.new(**@options[{{name.symbolize}}])
+        yield {{name.stringify}}, %name
+        if short = %name.short
+          yield short, %name
+        end
+      {% end %}
+    {% end %}
   end
 
   private def to_real_option(option : Char | String) : String
@@ -86,10 +99,13 @@ struct Clicr::Command(Action, Arguments, Commands, Options)
     {% begin %}
       {% options = Options < NamedTuple ? Options : {} of String => String %}
       {% for option, sub in options %}\
-        {% if sub[:default] == Nil || sub[:default] %}\
-          __{{option}} = @options[{{option.symbolize}}][:default]
-        {% else %}\
-          __{{option}} = false
+        # {{option}}
+        {% if sub[:default] %}\
+          %options{option} = @options[{{option.symbolize}}][:default]
+        {% elsif sub[:type] %}\
+          %options{option} = nil
+        {% else %}
+          %options{option} = false
         {% end %}\
       {% end %}\
 
@@ -97,18 +113,31 @@ struct Clicr::Command(Action, Arguments, Commands, Options)
         case option_name
         {% for option, sub in options %}\
         when {{option.stringify}} {% if sub[:short] %}, @options[{{option.symbolize}}][:short] {% end %}
-          {% if sub[:default] == Nil || sub[:default] %}
-            if value.is_a? String
-               __{{option}} = value              
-            elsif next_value = clicr.args.shift?
-               __{{option}} = next_value
+          {% type = sub[:type] ? sub[:type].name.split(".class")[0] : sub[:default].stringify %}
+          {% if type != "nil" %}
+            raw_value = value.is_a?(String) ? value : clicr.args.shift?
+
+            if raw_value
+              {% if type == "String" %}
+              %options{option} = raw_value
+              {% else %}
+              begin
+                %options{option} = {{type.id}}.new raw_value
+              rescue ex
+                return clicr.error_callback.call(
+                  clicr.invalid_option_value.call(
+                    command_name, to_real_option(option_name), ex
+                  ) + clicr.help_footer.call(command_name)
+                )
+              end
+              {% end %}
             else
               return clicr.error_callback.call(
                 clicr.argument_required.call(command_name, to_real_option(option_name)) + clicr.help_footer.call(command_name)
               )
             end
           {% else %}
-            __{{option}} = true
+            %options{option} = true
           {% end %}
         {% end %}
         else
@@ -134,7 +163,7 @@ struct Clicr::Command(Action, Arguments, Commands, Options)
           arguments: clicr.arguments,
         {% end %}
         {% for option, type in options %}\
-          {{option}}: __{{option}},
+          {{option.gsub(/-/, "_")}}: %options{option},
         {% end %}
       ){% if action.size > 1 %}{{ action[1].id }}{% end %}
     {% else %}

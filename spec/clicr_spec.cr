@@ -8,21 +8,21 @@ class TestCLI
 
   def initialize(args)
     other_options = {
-      subvar: {
-        label:    "sub variable",
-        default: nil,
+      "sub-var": {
+        label: "sub variable",
+        type:  String,
       },
     }
 
     main_options = {
       name: {
-        label:    "Your name",
+        label:   "Your name",
         default: "foo",
         short:   'n',
       },
       yes: {
         short: 'y',
-        label:  "Print the name",
+        label: "Print the name",
       },
     }
 
@@ -31,7 +31,7 @@ class TestCLI
       name: "myapp",
       commands: {
         talk: {
-          label:    "Talk",
+          label:   "Talk",
           action:  {"TestCLI.talk": "t"},
           options: main_options,
         },
@@ -40,7 +40,7 @@ class TestCLI
           arguments: %w(app numbers),
           options:   {
             var: {
-              default: nil,
+              type: String,
             },
           }.merge(main_options),
         },
@@ -51,14 +51,26 @@ class TestCLI
         },
         "tuple-args": {
           action:    {"TestCLI.tuple_args": ""},
-          label:      "Test args",
+          label:     "Test args",
           arguments: {"one", "two"},
         },
         "test-parens": {
           action: {"TestCLI.args().to_s": ""},
         },
+        "cast-option": {
+          action:  {"TestCLI.cast_option": ""},
+          options: {
+            port: {
+              type:  Int32,
+              short: 'p',
+            },
+            other: {
+              default: 123,
+            },
+          },
+        },
         options_variables: {
-          label:        "Test sub options/variables",
+          label:       "Test sub options/variables",
           description: <<-E.to_s,
         Multi-line
         description
@@ -67,7 +79,7 @@ class TestCLI
           options: {
             sub_opt: {
               short: 's',
-              label:  "sub options",
+              label: "sub options",
             },
           }.merge(**other_options, **main_options),
         },
@@ -87,6 +99,10 @@ class TestCLI
 
   def run
     @clicr.run
+  end
+
+  def self.cast_option(port : Int32?, other : Int32) : {Int32?, Int32}
+    {port, other}
   end
 
   def self.tuple_args(arguments : Tuple(String, String))
@@ -182,8 +198,8 @@ describe Clicr do
 
       it "uses concatenated single chars" do
         TestCLI.new(["options_variables", "-ys"]).run.should eq({
-          subvar:  nil,
           sub_opt: true,
+          sub_var: nil,
           name:    "foo",
           yes:     true,
         })
@@ -202,6 +218,14 @@ describe Clicr do
       it "sets a short one" do
         TestCLI.new(["talk", "-n", "bar"]).run.should eq({"bar", false})
       end
+
+      it "casts string option with a type given" do
+        TestCLI.new(["cast-option", "-p", "8080"]).run.should eq({8080, 123})
+      end
+
+      it "casts string option with a default given" do
+        TestCLI.new(["cast-option", "--other=8080"]).run.should eq({nil, 8080})
+      end
     end
   end
 
@@ -211,6 +235,7 @@ describe Clicr do
       Usage: myapp COMMANDS [OPTIONS]
 
       COMMANDS
+        cast-option
         options_variables        Test sub options/variables
         talk, t                  Talk
         test-multiple-no-limit
@@ -247,10 +272,10 @@ describe Clicr do
       description
 
       OPTIONS
-        --name, -n foo    Your name
-        --sub_opt, -s     sub options
-        --subvar String   sub variable
-        --yes, -y         Print the name
+        --name, -n foo     Your name
+        --sub-var String   sub variable
+        --sub_opt, -s      sub options
+        --yes, -y          Print the name
 
       'myapp options_variables --help' to show the help.
       HELP

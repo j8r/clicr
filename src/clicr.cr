@@ -33,6 +33,10 @@ class Clicr
     "unknown option for '#{command}': #{option}"
   end
 
+  property invalid_option_value : Proc(String, String, Exception, String) = ->(command : String, option : String, ex : Exception) do
+    "invalid option value for '#{command}': #{option} (#{ex})"
+  end
+
   getter help_option : String
 
   protected getter args : Array(String)
@@ -160,7 +164,7 @@ class Clicr
             if default = option.default
               key += ' ' + default
             else
-              key += " String"
+              key += " #{option.type}"
             end
           end
           array << {key, option.label}
