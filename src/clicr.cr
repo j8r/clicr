@@ -147,16 +147,16 @@ class Clicr
           end
           array << {name, (sub_command.label || sub_command.description)}
         end
+        array.sort_by! { |k, v| k }
         align io, array
         io.puts
       end
 
-      if command.options
+      if options = command.options
         io << '\n' << @options_name
         array = Array({String, String?}).new
-        command.each_option do |name, option|
-          next if name.is_a? Char
-          key = "--" + name
+        options.each do |name, option|
+          key = "--" + name.to_s
           if short = option.short
             key += ", -" + short
           end
@@ -180,7 +180,6 @@ class Clicr
 
   private def align(io, array : Array({String, String?})) : Nil
     max_size = array.max_of { |arg, _| arg.size }
-    array.sort_by! { |k, v| k }
     array.each do |name, help|
       io << "\n  " << name
       if help

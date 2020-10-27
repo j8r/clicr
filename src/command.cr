@@ -7,26 +7,35 @@ struct Clicr::Command(Action, Arguments, Commands, Options)
   include Clicr::Subcommand
   getter label, description, arguments, inherit, exclude, sub_commands, options
 
-  struct Option(T)
+  struct Option(T, D)
     getter short : Char?,
       label : String?,
-      default : T? = nil,
+      default : D,
       type : T.class = T
     getter? string_option : Bool = false
 
-    private def initialize(@label, @short, @type : T.class, @string_option)
+    private def initialize(@label, @short, @type : T.class, @default : D, @string_option)
     end
 
     def self.new(label : String? = nil, short : Char? = nil)
-      new label, short, Nil, false
+      new label, short, Nil, nil, false
     end
 
-    def initialize(@type : T.class, @label : String? = nil, @short : Char? = nil)
-      @string_option = true
+    def self.new(type : T.class, label : String? = nil, short : Char? = nil)
+      new label, short, type, nil, true
     end
 
-    def initialize(@default : T, @label : String? = nil, @short : Char? = nil)
-      @string_option = true
+    def self.new(default : D, label : String? = nil, short : Char? = nil)
+      new label, short, D, default, true
+    end
+
+    # yields in cast of
+    def cast_value(raw_value : String) : T
+      {% if T == String %}
+        raw_value
+      {% else %}
+        T.new raw_value
+      {% end %}
     end
   end
 
@@ -53,16 +62,28 @@ struct Clicr::Command(Action, Arguments, Commands, Options)
     options : Options = nil
   )
     {% !(Action < NamedTuple) && Commands == Nil && raise "At least an action to perform or sub-commands that have actions to perfom is needed." %}
-    new(
-      label,
-      description,
-      inherit,
-      exclude,
-      action,
-      arguments,
-      commands,
-      options,
-    )
+    {% if Options < NamedTuple %}
+      casted_options = {
+      {% for name in Options.keys.sort_by { |k| k } %}
+        # {{name}}
+        {{name.stringify}}: Option.new(**options[{{name.symbolize}}]),
+      {% end %}
+      }
+    {% else %}
+      casted_options = nil
+    {% end %}
+    {% begin %}
+      new(
+        label,
+        description,
+        inherit,
+        exclude,
+        action,
+        arguments,
+        commands,
+        casted_options
+      )
+    {% end %}
   end
 
   def each_sub_command(& : String, String, Subcommand ->)
@@ -77,19 +98,6 @@ struct Clicr::Command(Action, Arguments, Commands, Options)
     {% end %}
   end
 
-  def each_option(& : Char | String ->)
-    {% if Options < NamedTuple %}
-      {% for name, opt in Options %}
-        # {{name}}
-        %name = Option.new(**@options[{{name.symbolize}}])
-        yield {{name.stringify}}, %name
-        if short = %name.short
-          yield short, %name
-        end
-      {% end %}
-    {% end %}
-  end
-
   private def to_real_option(option : Char | String) : String
     option.is_a?(Char) ? "-#{option}" : "--#{option}"
   end
@@ -100,29 +108,25 @@ struct Clicr::Command(Action, Arguments, Commands, Options)
       {% options = Options < NamedTuple ? Options : {} of String => String %}
       {% for option, sub in options %}\
         # {{option}}
-        {% if sub[:default] %}\
-          %options{option} = @options[{{option.symbolize}}][:default]
-        {% elsif sub[:type] %}\
-          %options{option} = nil
-        {% else %}
+        {% if sub.type_vars.first == Nil %}\
           %options{option} = false
+        {% else %}
+          %options{option} = @options[{{option.symbolize}}].default
         {% end %}\
       {% end %}\
 
       name_with_command = clicr.parse_options command_name, self do |option_name, value|
         case option_name
         {% for option, sub in options %}\
-        when {{option.stringify}} {% if sub[:short] %}, @options[{{option.symbolize}}][:short] {% end %}
-          {% type = sub[:type] ? sub[:type].name.split(".class")[0] : sub[:default].stringify %}
-          {% if type != "nil" %}
+        when {{option.stringify}}, @options[{{option.symbolize}}].short
+          {% if sub.type_vars.first == Nil %}
+            %options{option} = true
+          {% else %}
             raw_value = value.is_a?(String) ? value : clicr.args.shift?
 
             if raw_value
-              {% if type == "String" %}
-              %options{option} = raw_value
-              {% else %}
               begin
-                %options{option} = {{type.id}}.new raw_value
+                %options{option} = @options[{{option.symbolize}}].cast_value raw_value
               rescue ex
                 return clicr.error_callback.call(
                   clicr.invalid_option_value.call(
@@ -130,14 +134,11 @@ struct Clicr::Command(Action, Arguments, Commands, Options)
                   ) + clicr.help_footer.call(command_name)
                 )
               end
-              {% end %}
             else
               return clicr.error_callback.call(
                 clicr.argument_required.call(command_name, to_real_option(option_name)) + clicr.help_footer.call(command_name)
               )
             end
-          {% else %}
-            %options{option} = true
           {% end %}
         {% end %}
         else
@@ -162,7 +163,7 @@ struct Clicr::Command(Action, Arguments, Commands, Options)
         {% elsif Arguments < Array %}
           arguments: clicr.arguments,
         {% end %}
-        {% for option, type in options %}\
+        {% for option, sub in options %}\
           {{option.gsub(/-/, "_")}}: %options{option},
         {% end %}
       ){% if action.size > 1 %}{{ action[1].id }}{% end %}
