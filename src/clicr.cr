@@ -60,6 +60,7 @@ class Clicr
     options = nil
   )
     @sub = Command.create(
+      short: "",
       label: label,
       description: description,
       action: action,
@@ -74,7 +75,7 @@ class Clicr
     @sub.exec @name, self
   end
 
-  protected def parse_options(command_name : String, command : Command, & : String | Char, String? ->)
+  protected def parse_options(command_name : String, command : Command, & : String | Char, String? ->) : Tuple(String, Subcommand) | Clicr | Nil
     while arg = @args.shift?
       if string_option = arg.lchop? "--"
         if @help_option == string_option
@@ -104,8 +105,8 @@ class Clicr
         @arguments << arg
       else
         next if arg.empty?
-        command.each_sub_command do |name, short, sub_command|
-          if name == arg || arg == short
+        command.sub_commands.try &.each do |name, sub_command|
+          if name.to_s == arg || sub_command.short == arg
             return {command_name + ' ' + arg, sub_command}
           end
         end
@@ -138,16 +139,16 @@ class Clicr
       if description = command.description || command.label
         io << '\n' << description << '\n'
       end
-      if command.sub_commands
+      if sub_commands = command.sub_commands
         io << '\n' << @commands_name
         array = Array({String, String?}).new
-        command.each_sub_command do |name, short, sub_command|
-          if !short.empty?
-            name += ", " + short
+        sub_commands.each do |name, sub_command|
+          name_str = name.to_s
+          if !sub_command.short.empty?
+            name_str += ", " + sub_command.short
           end
-          array << {name, (sub_command.label || sub_command.description)}
+          array << {name_str, (sub_command.label || sub_command.description)}
         end
-        array.sort_by! { |k, v| k }
         align io, array
         io.puts
       end

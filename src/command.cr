@@ -5,7 +5,7 @@ end
 
 struct Clicr::Command(Action, Arguments, Commands, Options)
   include Clicr::Subcommand
-  getter label, description, arguments, inherit, exclude, sub_commands, options
+  getter short, label, description, arguments, inherit, exclude, sub_commands, options
 
   struct Option(T, D)
     getter short : Char?,
@@ -40,6 +40,7 @@ struct Clicr::Command(Action, Arguments, Commands, Options)
   end
 
   private def initialize(
+    @short : String,
     @label : String?,
     @description : String?,
     @inherit : Array(String)?,
@@ -52,6 +53,7 @@ struct Clicr::Command(Action, Arguments, Commands, Options)
   end
 
   def self.create(
+    short : String,
     label : String? = nil,
     description : String? = nil,
     inherit : Array(String)? = nil,
@@ -64,7 +66,7 @@ struct Clicr::Command(Action, Arguments, Commands, Options)
     {% !(Action < NamedTuple) && Commands == Nil && raise "At least an action to perform or sub-commands that have actions to perfom is needed." %}
     {% if Options < NamedTuple %}
       casted_options = {
-      {% for name in Options.keys.sort_by { |k| k } %}
+      {% for name in Options.keys.sort_by { |k| k } %}\
         # {{name}}
         {{name.stringify}}: Option.new(**options[{{name.symbolize}}]),
       {% end %}
@@ -72,29 +74,31 @@ struct Clicr::Command(Action, Arguments, Commands, Options)
     {% else %}
       casted_options = nil
     {% end %}
+    {% if Commands < NamedTuple %}
+      casted_commands = {
+      {% for name in Commands.keys.sort_by { |k| k } %}\
+      {{name.stringify}}: create(
+        **commands[{{name.symbolize}}].merge({
+          short: commands[{{name.symbolize}}][:action].values.first
+        })
+      ),
+      {% end %}
+      }
+    {% else %}
+      casted_commands = nil
+    {% end %}
     {% begin %}
       new(
+        short,
         label,
         description,
         inherit,
         exclude,
         action,
         arguments,
-        commands,
+        casted_commands,
         casted_options
       )
-    {% end %}
-  end
-
-  def each_sub_command(& : String, String, Subcommand ->)
-    {% if Commands < NamedTuple %}
-      {% for name, sub in Commands %}
-      yield(
-        {{name.stringify}},
-        @sub_commands[{{name.symbolize}}][:action].values.first,
-        Command.create(**@sub_commands[{{name.symbolize}}])
-      )
-      {% end %}
     {% end %}
   end
 
