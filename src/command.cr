@@ -5,7 +5,7 @@ end
 
 struct Clicr::Command(Action, Arguments, Commands, Options)
   include Clicr::Subcommand
-  getter short, label, description, arguments, inherit, exclude, sub_commands, options
+  getter name, short, label, description, arguments, inherit, exclude, sub_commands, options
 
   struct Option(T, D)
     getter short : Char?,
@@ -40,7 +40,8 @@ struct Clicr::Command(Action, Arguments, Commands, Options)
   end
 
   private def initialize(
-    @short : String,
+    @name : String,
+    @short : String?,
     @label : String?,
     @description : String?,
     @inherit : Array(String)?,
@@ -53,6 +54,7 @@ struct Clicr::Command(Action, Arguments, Commands, Options)
   end
 
   def self.create(
+    name : String,
     short : String,
     label : String? = nil,
     description : String? = nil,
@@ -77,8 +79,9 @@ struct Clicr::Command(Action, Arguments, Commands, Options)
     {% if Commands < NamedTuple %}
       casted_commands = {
       {% for name in Commands.keys.sort_by { |k| k } %}\
-      {{name.stringify}}: create(
+      create(
         **commands[{{name.symbolize}}].merge({
+          name: {{name.stringify}},
           short: commands[{{name.symbolize}}][:action].values.first
         })
       ),
@@ -89,7 +92,8 @@ struct Clicr::Command(Action, Arguments, Commands, Options)
     {% end %}
     {% begin %}
       new(
-        short,
+        name,
+        (short if !short.empty?),
         label,
         description,
         inherit,
@@ -119,7 +123,7 @@ struct Clicr::Command(Action, Arguments, Commands, Options)
         {% end %}\
       {% end %}\
 
-      name_with_command = clicr.parse_options command_name, self do |option_name, value|
+      sub_command = clicr.parse_options command_name, self do |option_name, value|
         case option_name
         {% for option, sub in options %}\
         when {{option.stringify}}, @options[{{option.symbolize}}].short
@@ -152,9 +156,9 @@ struct Clicr::Command(Action, Arguments, Commands, Options)
         end
       end
 
-      if name_with_command.is_a? Tuple(String, Subcommand)
-        return name_with_command[1].exec(name_with_command[0], clicr)
-      elsif !name_with_command.is_a? Clicr
+      if sub_command.is_a? Subcommand
+        return sub_command.exec("#{command_name} #{sub_command.name}", clicr)
+      elsif !sub_command.is_a? Clicr
         # a callback has been called, stop
         return
       end

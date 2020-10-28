@@ -60,6 +60,7 @@ class Clicr
     options = nil
   )
     @sub = Command.create(
+      name: @name,
       short: "",
       label: label,
       description: description,
@@ -75,7 +76,7 @@ class Clicr
     @sub.exec @name, self
   end
 
-  protected def parse_options(command_name : String, command : Command, & : String | Char, String? ->) : Tuple(String, Subcommand) | Clicr | Nil
+  protected def parse_options(command_name : String, command : Command, & : String | Char, String? ->) : Subcommand | Clicr | Nil
     while arg = @args.shift?
       if string_option = arg.lchop? "--"
         if @help_option == string_option
@@ -105,9 +106,9 @@ class Clicr
         @arguments << arg
       else
         next if arg.empty?
-        command.sub_commands.try &.each do |name, sub_command|
-          if name.to_s == arg || sub_command.short == arg
-            return {command_name + ' ' + arg, sub_command}
+        command.sub_commands.try &.each do |sub_command|
+          if sub_command.name == arg || sub_command.short == arg
+            return sub_command
           end
         end
 
@@ -142,12 +143,12 @@ class Clicr
       if sub_commands = command.sub_commands
         io << '\n' << @commands_name
         array = Array({String, String?}).new
-        sub_commands.each do |name, sub_command|
-          name_str = name.to_s
-          if !sub_command.short.empty?
-            name_str += ", " + sub_command.short
+        sub_commands.each do |sub_command|
+          name = sub_command.name
+          if short = sub_command.short
+            name += ", " + short
           end
-          array << {name_str, (sub_command.label || sub_command.description)}
+          array << {name, (sub_command.label || sub_command.description)}
         end
         align io, array
         io.puts
@@ -184,7 +185,7 @@ class Clicr
     array.each do |name, help|
       io << "\n  " << name
       if help
-        (max_size - name.to_s.size).times do
+        (max_size - name.size).times do
           io << ' '
         end
         io << "   " << help
